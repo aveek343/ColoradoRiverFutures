@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1564774645195.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A79931C2",
+    "lastKnownWriteTime" : 28429324841123925,
+    "last_content_update" : 1564774645195,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "AE8F29B8",
+        "caption" : "dfMeadValsAdd",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfMeadValsAdd&cache_key=AE8F29B8",
+        "displayedObservations" : "7",
+        "environment" : "",
+        "object" : "dfMeadValsAdd",
+        "preview" : "0",
+        "totalObservations" : "7",
+        "variables" : "6"
+    },
+    "relative_order" : 11,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

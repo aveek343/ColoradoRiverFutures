@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1564096822192.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "B7138910",
+    "lastKnownWriteTime" : 8674299459454662501,
+    "last_content_update" : 1564096822192,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "F249D34C",
+        "caption" : "dfMaxStor",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfMaxStor&cache_key=F249D34C",
+        "displayedObservations" : "2",
+        "environment" : "",
+        "object" : "dfMaxStor",
+        "preview" : "0",
+        "totalObservations" : "2",
+        "variables" : "2"
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
