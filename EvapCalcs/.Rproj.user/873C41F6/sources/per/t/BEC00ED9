@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1557262982717.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1102542425",
+    "id" : "BEC00ED9",
+    "lastKnownWriteTime" : 1562879624,
+    "last_content_update" : 1562879624275,
+    "path" : "C:/Rosenberg/Work/USU/Research/ColoradoRiver/Walton/ChargingReservoirEvaporation/EvapCalcs/TimeToDeadPool.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "724,0",
+        "scrollLine" : "84"
+    },
+    "relative_order" : 15,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
