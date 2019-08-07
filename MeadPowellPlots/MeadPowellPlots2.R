@@ -213,7 +213,7 @@ dfMeadValsAdd$value[nRowMead] <- -dfMeadVals[10,3]
 dfMeadValsAdd$stor_maf <- dfMeadValsAdd$value / 1000000
 
 #Define the powell equalization tiers
-dfPowellTiers <- data.frame(Tier = c("Lower Eq. Tier","Mid Eq. Tier","Upper Eq. Tier","Eq. Elev.\n(year)","Equalization Tier","Capacity"),
+dfPowellTiers <- data.frame(Tier = c("Lower Tier","Mid Tier","Upper Tier","Eq. Elev.\n(year)","Equalization Tier","Capacity"),
                                         PowellLowerVol = c(0,5.93,9.52,15.54,19.29,dfMaxStor[1,2]))
 dfPowellTiers <- mutate(dfPowellTiers, PowellMidVol = (lead(PowellLowerVol) + PowellLowerVol)/2)
 # Mead volume to make plot labels come out nice
@@ -271,7 +271,7 @@ dfPositions <- data.frame(id = rep(ids, each = 4),
    MeadVol = c(0,0,dfMaxStor[2,2],dfMaxStor[2,2],0,0,5.98,5.98,5.98,5.98,25.9,dfMaxStor[2,2],0,0,9.6,9.6,9.6,9.6,dfMaxStor[2,2],dfMaxStor[2,2],0,0,dfMaxStor[2,2],dfMaxStor[2,2],0,0,dfMaxStor[2,2],dfMaxStor[2,2]))
 #Allowable release(s) within each polygon
 dfReleases <- data.frame(id = ids,
-     Release = c("7.0 to 9.5\nMAF per year", "8.23\nMAF\nper year", "7.48\nMAF\nper year", "7 to 9\nMAF per year", "8.23\nMAF per year", "","8.23 or above\nMAF per year"),
+     Release = c("Balance:\nRelease\n7.0 to 9.5\nMAF per year", "Release\n8.23\nMAF\nper year", "Release\n7.48\nMAF\nper year", "Balance:\nRelease\n7 to 9\nMAF per year", "Release\n8.23\nMAF per year", "","Release\n8.23 or above\nMAF per year"),
      DumVal = c(1:7))
 
 
@@ -316,9 +316,12 @@ dStart = 2007
 
 #Filter to Januaries before and after start date
 dfJointStorageFilt <- dfJointStorage %>% arrange(dfJointStorage$DateAsValue) %>% filter(month(dfJointStorage$DateAsValue) == 1) 
+dfJointStorageFiltBefore <- dfJointStorageFilt %>% arrange(dfJointStorageFilt$DateAsValue) %>% filter(as.numeric(format(dfJointStorageFilt$DateAsValue,"%Y")) <= dStart) 
+dfJointStorageFiltAfter <- dfJointStorageFilt %>% arrange(dfJointStorageFilt$DateAsValue) %>% filter(as.numeric(format(dfJointStorageFilt$DateAsValue,"%Y")) >= dStart) 
+
 #Filter to all months before and after start date
-#dfJointStorageBefore <- dfJointStorage %>% arrange(dfJointStorage$DateAsValue) %>% filter(as.numeric(format(dfJointStorage$DateAsValue,"%Y")) <= dStart) 
-#dfJointStorageAfter <- dfJointStorage %>% arrange(dfJointStorage$DateAsValue) %>% filter(as.numeric(format(dfJointStorage$DateAsValue,"%Y")) >= dStart) 
+dfJointStorageBefore <- dfJointStorage %>% arrange(dfJointStorage$DateAsValue) %>% filter(as.numeric(format(dfJointStorage$DateAsValue,"%Y")) <= dStart) 
+dfJointStorageAfter <- dfJointStorage %>% arrange(dfJointStorage$DateAsValue) %>% filter(as.numeric(format(dfJointStorage$DateAsValue,"%Y")) >= dStart) 
 
 #### #1 - Show Current Equalization Rules
 # Run 3 versions of the plot.
