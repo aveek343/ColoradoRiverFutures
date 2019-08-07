@@ -15,7 +15,7 @@ August 2, 2019
 Utah State University
 
 ## Recommended Citation
-David E. Rosenberg (2019). "Colordao River Futures - Code Projects". Utah State University. Logan, Utah. https://github.com/dzeke/ColoradoRiverFutures.
+David E. Rosenberg (2019). "Colorado River Futures - Code Projects". Utah State University. Logan, Utah. https://github.com/dzeke/ColoradoRiverFutures.
 
 ## Explanation of Contents
 
