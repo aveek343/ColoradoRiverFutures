@@ -25,7 +25,7 @@ rm(list = ls())  #Clear history
 # Load required libraies
 
 if (!require(tidyverse)) { 
-  install.packages("tidyverse", repos="http://cran.r-project.org") 
+  install.packages("tidyverse", repos="https://cran.cnr.berkeley.edu/", verbose = TRUE) 
   library(tidyverse) 
 }
 
@@ -74,6 +74,18 @@ if (!require(plyr)) {
   install.packages("plyr", repo="http://cran.r-project.org")
   library(plyr) 
 }
+
+if (!require(ggplot)) { 
+  install.packages("ggplot", repo="http://cran.r-project.org")
+  library(ggplot) 
+}
+
+if (!require(stringr)) { 
+  install.packages("stringr", repo="http://cran.r-project.org")
+  library(stringr) 
+}
+
+
 
 # New function interp2 to return NAs for values outside interpolation range (from https://stackoverflow.com/questions/47295879/using-interp1-in-r)
 interp2 <- function(x, y, xi = x, ...) {

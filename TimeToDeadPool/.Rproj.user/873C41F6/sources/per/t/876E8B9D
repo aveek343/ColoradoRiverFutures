@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565724354742.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "876E8B9D",
+    "lastKnownWriteTime" : 8243124888133780582,
+    "last_content_update" : 1565724354742,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "7B2346EF",
+        "caption" : "dfDeliveries",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfDeliveries&cache_key=7B2346EF",
+        "displayedObservations" : "14",
+        "environment" : "",
+        "object" : "dfDeliveries",
+        "preview" : "0",
+        "totalObservations" : "14",
+        "variables" : "4"
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

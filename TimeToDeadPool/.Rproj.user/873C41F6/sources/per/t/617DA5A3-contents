@@ -207,8 +207,8 @@ lTestReturn <- TimeToReservoirTarget(Sinit = tStartVol, inflow = tInflow, delive
 #      Load Data for LAKE MEAD and LAKE POWELL              #
 #############################################################
 
-# Lower Basin Delivery Target for CA, AZ, NV, and MX (maf per year)
-vLowerBasinDeliveryTarget <- 9e6
+# Lower Basin Delivery Target for CA, AZ, NV, MX, and losses (maf per year)
+vLowerBasinDeliveryTarget <- 9.6e6
 
 ###This reservoir data comes from CRSS. It was exported to Excel.
 
@@ -293,7 +293,6 @@ dfCutbacks <- dfCutbacks %>% mutate(TotalDCP = `Mexico Reduction (Minute 323) [2
                                       `DCP Federal Government (ac-ft)`)
 
 #Calculate Delivers as Target - Reduction
-dfCutbacks$DeliveryDCPwLoss <- vLowerBasinDeliveryTarget - dfCutbacks$TotalDCP + 600000 # Including Lower basin delivery losses (evap, ET, etc.
 dfCutbacks$DeliveryDCP <- vLowerBasinDeliveryTarget - dfCutbacks$TotalDCP
 dfCutbacks$DeliveryISG <- vLowerBasinDeliveryTarget - dfCutbacks$Total2007ISG
 dfCutbacks$DeliveryNorm <- vLowerBasinDeliveryTarget 
@@ -383,6 +382,112 @@ eRateToUse <- dfEvapRates %>% filter(Reservoir %in% c(sReservoir), Source %in% c
 # 5-year running average from Moreo (2015)
 eRateToUse <- 6.2 #I suggest that it is better to use the available 5-yr average for the latest Moreo data for Mead (6.2 ft/yr 2010-2015) 
 
+yMax = 10
+yMin = 0
+dfOneToOne <- data.frame(MeadVol = c(yMin,yMax), Delivery = c(yMin,yMax))
+
+### Plot #1. DCP and ISG Deliveries versus Mead active storage
+ggplot() +
+  #DCP and ISG step functions
+  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
+  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
+  geom_line(data=dfOneToOne,aes(x=MeadVol,y=Delivery, color="1:1",linetype="1:1"), size=1) +
+  
+  scale_color_manual(name="Guide1",values = c("1:1"="Black","ISG"="Blue", "DCP"="Red"),breaks=c("ISG","DCP","1:1"), labels= c("Interim Shortage Guidelines (2008)","Drought Contingency Plan (2019)","1:1" )) +
+  scale_linetype_manual(name="Guide1",values=c("1:1"="dashed","ISG"="longdash","DCP"="solid"), breaks=c("ISG", "DCP","1:1"), labels= c("Interim Shortage Guidelines (2008)","Drought Contingency Plan (2019)","1:1" )) +
+  
+  scale_x_continuous(breaks = c(0,5,10,15,20,25),labels=c(0,5,10,15, 20,25), limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+                     sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$label)) +
+  
+  guides(fill = guide_legend(keywidth = 1, keyheight = 1),
+         linetype=guide_legend(keywidth = 3, keyheight = 1),
+         colour=guide_legend(keywidth = 3, keyheight = 1)) +
+  ylim(yMin,yMax) +
+  theme_bw() +
+  
+  labs(x="Mead Active Storage (MAF)", y="Delivery (MAF per year)") +
+  theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.7,0.5))
+
+### Plot #2. DCP and ISG Deliveries versus Mead active storage with Mead protection level
+
+#Protect to bottom of DCP cutbacks
+lProtectLevel <- 1025
+sProtectlabel <- "1:1 Line-Protect 1,025"
+#Convert to acre-feet
+vProtectLevel <- interp1(xi = lProtectLevel,x=dfMeadElevStor$`Elevation (ft)` , y=dfMeadElevStor$`Live Storage (ac-ft)`, method="linear")/1e6
+# Construct a 1:1 line representing the Protection level. This line starts at (vProtectLevel,0)
+dfProtectLine <- data.frame(MeadVol=c(vProtectLevel,vProtectLevel+yMax),Delivery=c(0,yMax))
+
+ggplot() +
+  #DCP and ISG step functions
+  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
+  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
+  geom_line(data=dfOneToOne,aes(x=MeadVol,y=Delivery, color="1:1 Line to Dead Pool",linetype="1:1 Line to Dead Pool"), size=1) +
+  geom_line(data=dfProtectLine,aes(x=MeadVol,y=Delivery, color="1:1 Line-Protect 1,025",linetype="1:1 Line-Protect 1,025"), size=1) +
+  
+   
+  scale_color_manual(name="Guide1",values = c("1:1 Line to Dead Pool"="Black","1:1 Line-Protect 1,025"="Grey","ISG"="Blue", "DCP"="Red"),breaks=c("ISG","DCP","1:1 Line to Dead Pool", "1:1 Line-Protect 1,025"), labels= c("Interim Shortage Guidelines (2008)","Drought Contingency Plan (2019)","1:1 Line to Dead Pool", "1:1 Line-Protect 1,025" )) +
+  scale_linetype_manual(name="Guide1",values=c("1:1 Line to Dead Pool"="dashed","1:1 Line-Protect 1,025"="dashed","ISG"="longdash","DCP"="solid"), breaks=c("ISG", "DCP","1:1 Line to Dead Pool", "1:1 Line-Protect 1,025"), labels= c("Interim Shortage Guidelines (2008)","Drought Contingency Plan (2019)","1:1 Line to Dead Pool", "1:1 Line-Protect 1,025" )) +
+  
+  scale_x_continuous(breaks = c(0,5,10,15,20,25),labels=c(0,5,10,15, 20,25), limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+                     sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$label)) +
+  
+  guides(fill = guide_legend(keywidth = 1, keyheight = 1),
+         linetype=guide_legend(keywidth = 3, keyheight = 1),
+         colour=guide_legend(keywidth = 3, keyheight = 1)) +
+  ylim(yMin,yMax) +
+  theme_bw() +
+  
+  labs(x="Mead Active Storage (MAF)", y="Delivery (MAF per year)") +
+  theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.7,0.5))
+
+
+### Plot 3 - DCP Delivery vs Available Water for varying inflows. Available water is Mead Active Storage + Inflow.
+
+# Create the data frame with deliveries as a function of mead active storage and inflow
+cInflows <- c(5,6,7,8,8.5,9) #Million acre-feet per year
+dfDeliveries <- dfCutbacks[, c("MeadActiveVolume", "DeliveryDCP", "DeliveryISG")]/1e6
+dfDeliveries$Inflow <- 0
+dfDeliveries[nrow(dfDeliveries),c("DeliveryDCP","DeliveryISG")] <- NA
+dfDeliveriesInflows <- dfDeliveries
+for (iFlow in cInflows){
+  dfDeliveries$Inflow <- iFlow
+  dfDeliveriesInflows <- rbind(dfDeliveriesInflows,dfDeliveries)
+}
+
+#Calculate available water
+dfDeliveriesInflows$AvailableWater <- dfDeliveriesInflows$MeadActiveVolume + dfDeliveriesInflows$Inflow
+dfDeliveriesInflows$Inflow=as.factor(dfDeliveriesInflows$Inflow)
+
+#Specify te order for traces on the plot
+cBreakOrder <- c("1:1 Line to Dead Pool","1:1 Line-Protect 1,025",cInflows)
+cColorVals <- c(pBlues[2],"Grey","Black",pBlues[3:9])
+cLineVals <- c("solid","longdash","dashed",rep("solid",times=length(cInflows)))
+
+## Make the plot
+
+ggplot() + 
+  geom_step(data=dfDeliveriesInflows,aes(x=AvailableWater,y=DeliveryDCP, color=Inflow, linetype=Inflow), size=2, direction="vh") +
+  geom_line(data=dfOneToOne,aes(x=MeadVol,y=Delivery, color="1:1 Line to Dead Pool", linetype="1:1 Line to Dead Pool"), size=1.5) +
+  geom_line(data=dfProtectLine,aes(x=MeadVol,y=Delivery, color="1:1 Line-Protect 1,025", linetype="1:1 Line-Protect 1,025"), size=1.5) +
+
+  scale_color_manual(name="Guide1", values = cColorVals, breaks=cBreakOrder) +
+  scale_linetype_manual(name="Guide1",values = cLineVals, breaks=cBreakOrder) +
+
+  scale_x_continuous(breaks = c(0,5,10,15,20,25),labels=c(0,5,10,15, 20,25), limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+                     sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$label)) +
+  
+  guides(fill = guide_legend(keywidth = 1, keyheight = 1),
+         linetype=guide_legend(keywidth = 3, keyheight = 1),
+         colour=guide_legend(keywidth = 3, keyheight = 1)) +
+  ylim(yMin,yMax) +
+  theme_bw() +
+  
+  labs(x="Available Water (Mead Active Storage + Inflow) (MAF)", y="Delivery (MAF per year)") +
+  theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.7,0.5))
+
+
+
 ###############################################################################################
 # RUN MEAD SIMULATIONS STARTING AT CURRENT APRIL 2019 storage WITH DIFFERNT cONSTANT INFLOWS ####
 #
@@ -405,7 +510,7 @@ for (tInflow in seq(5,12, by=1)*1e6){
     #debug(TimeToReservoirTarget)
   
     # With lower basin delivery losses
-    tRes <- TimeToReservoirTarget(Sinit = sMeadApril2019, inflow = tInflow, deliveryVolume = dfCutbacks$DeliveryDCPwLoss, 
+    tRes <- TimeToReservoirTarget(Sinit = sMeadApril2019, inflow = tInflow, deliveryVolume = dfCutbacks$DeliveryDCP, 
                                 deliveryResStorage = dfCutbacks$MeadActiveVolume, eRate = eRateToUse,  ResArea = dfMeadElevStor$`Area (acres)`, 
                                 ResVolume = dfMeadElevStor$`Live Storage (ac-ft)`, MaxIts = maxIts, sMethodRelease = "constant", 
                                 sMinTarget = sMeadDCPBottom, sMaxTarget = tMaxVol*1e6, startYear = startYear )
@@ -641,7 +746,7 @@ for (tInitStorage in seq(6,tMaxVol,by=2)*1e6) {
     
     #tInflow <- 6e6
     #debug(TimeToReservoirTarget)
-    tRes <- TimeToReservoirTarget(Sinit = tInitStorage, inflow = tInflow, deliveryVolume = dfCutbacks$DeliveryDCPwLoss, # deliveryVolume = dfCutbacks$DeliveryDCP, 
+    tRes <- TimeToReservoirTarget(Sinit = tInitStorage, inflow = tInflow, deliveryVolume = dfCutbacks$DeliveryDCP, # deliveryVolume = dfCutbacks$DeliveryDCP, 
                                   deliveryResStorage = dfCutbacks$MeadActiveVolume, eRate = eRateToUse,  ResArea = dfMeadElevStor$`Area (acres)`, 
                                   ResVolume = dfMeadElevStor$`Live Storage (ac-ft)`, MaxIts = maxIts, sMethodRelease = "constant", 
                                   sMinTarget = dfMeadValsAdd$value[6], sMaxTarget = tMaxVol*1e6, startYear = startYear )

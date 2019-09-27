@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565724515539.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "B1861447",
+    "lastKnownWriteTime" : 8606216600121078629,
+    "last_content_update" : 1565724515539,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "D52C0B55",
+        "caption" : "dfDeliveriesInflows",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfDeliveriesInflows&cache_key=D52C0B55",
+        "displayedObservations" : "91",
+        "environment" : "",
+        "object" : "dfDeliveriesInflows",
+        "preview" : "0",
+        "totalObservations" : "91",
+        "variables" : "5"
+    },
+    "relative_order" : 10,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
