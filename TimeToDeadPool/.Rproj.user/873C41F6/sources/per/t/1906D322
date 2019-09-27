@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565724259965.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "1906D322",
+    "lastKnownWriteTime" : 207568472,
+    "last_content_update" : 1565724259965,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "AF42FCC8",
+        "caption" : "dfDeliverySchedule",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfDeliverySchedule&cache_key=AF42FCC8",
+        "displayedObservations" : 4,
+        "environment" : "",
+        "object" : "dfDeliverySchedule",
+        "preview" : 0,
+        "totalObservations" : 4,
+        "variables" : 2
+    },
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

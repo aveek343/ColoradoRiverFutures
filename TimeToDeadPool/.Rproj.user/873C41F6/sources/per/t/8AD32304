@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565735200651.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "8AD32304",
+    "lastKnownWriteTime" : 6014398338742241638,
+    "last_content_update" : 1565735200651,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "1012533",
+        "caption" : "dfInflowStorageSimulations",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfInflowStorageSimulations&cache_key=1012533",
+        "displayedObservations" : "8000",
+        "environment" : "",
+        "object" : "dfInflowStorageSimulations",
+        "preview" : "0",
+        "totalObservations" : "8000",
+        "variables" : "7"
+    },
+    "relative_order" : 11,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
