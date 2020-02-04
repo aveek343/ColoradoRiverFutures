@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1571685251341.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "14C7A3C8",
+    "lastKnownWriteTime" : 8017342125385807465,
+    "last_content_update" : 1571685251341,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "7E577303",
+        "caption" : "dfPolyLabel2",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfPolyLabel2&cache_key=7E577303",
+        "displayedObservations" : "1",
+        "environment" : "",
+        "object" : "dfPolyLabel2",
+        "preview" : "0",
+        "totalObservations" : "1",
+        "variables" : "3"
+    },
+    "relative_order" : 15,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
