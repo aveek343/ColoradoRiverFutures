@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1566976982188.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3513388846",
+    "id" : "6D26CC76",
+    "lastKnownWriteTime" : 1569605185,
+    "last_content_update" : 1576532543972,
+    "path" : "C:/Rosenberg/Work/USU/Research/ColoradoRiver/RCode/ColoradoRiverFutures/EvapCalcs/ChargeEvapPlots.R",
+    "project_path" : "ChargeEvapPlots.R",
+    "properties" : {
+        "cursorPosition" : "154,77",
+        "scrollLine" : "143"
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

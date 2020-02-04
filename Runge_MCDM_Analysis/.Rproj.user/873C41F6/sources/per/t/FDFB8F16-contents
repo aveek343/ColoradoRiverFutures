@@ -195,7 +195,7 @@ cpairs(RungeNumeric, dta.o, panel.colors=dta.col, gap=.5,
 
 # Remove alternative #6 (F-Steady flow) and keep 14 columns (prune)
 # 1, 2, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18  
-RungeNumericPrune <- RungeNumeric[, c(1, 2, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)] %>% filter(RungeNumeric$AltNum != 6)
+RungeNumericPrune <- RungeNumeric[, c(1, 2, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18)] %>% filter(RungeNumeric$Alter. != 6)
 
 # Replot the scatter plot
 corMatrixPrune <- abs(cor(RungeNumericPrune))

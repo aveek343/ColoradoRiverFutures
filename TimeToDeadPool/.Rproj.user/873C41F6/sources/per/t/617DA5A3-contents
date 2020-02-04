@@ -79,7 +79,19 @@ if (!require(plyr)) {
   library(plyr) 
 }
 
-# New functoin MeadInflowToLeeFerrylNatural that takes a Mead Inflow value and estimates a Lee Ferry Natural Flow value
+# New function MeadInflowToPowellRelease that takes an annual Mead Inflow value and estimates the Annual Powell Release
+# Simplistic relationship: just add Grand Canyon tributary inflow
+
+#  [Lee Ferry Natural Flow]  =  [Mead Inflow]  - [0.3 to 0.8 MAF Grand Canyon Tributary inflow](numbers all very rough).
+
+MeadInflowToPowellRelease <- function(MeadInflow,GrandCanyonTrib) {
+  
+  PowellRelease <- MeadInflow - GrandCanyonTrib;
+  return(PowellRelease)  ;
+}
+
+
+# New function MeadInflowToLeeFerrylNatural that takes a Mead Inflow value and estimates a Lee Ferry Natural Flow value
 # Simplistic relationship between natural flow at Lee Ferry and Mead Flow. I think this is something like:
   
 #  [Lee Ferry Natural Flow]  =  [Mead Inflow]  - [0.3 to 0.8 MAF Grand Canyon Tributary inflow] + [0.6 MAF Powell Evaporation] + [4.5 MAF upper basin consumptive use] (numbers all very rough).
@@ -257,9 +269,9 @@ ggplot(dfGCFlowsByYear, aes(y=x)) +
 vMedGCFlow <- median(dfGCFlowsByYear$x)
 
 # Read in the ISG and DCP cutbacks from Excel
-dfCutbacksElev <- read_excel(sExcelFile, sheet = "Data",  range = "H21:H33") #Elevations
-dfCutbacksVols <- read_excel(sExcelFile, sheet = "Data",  range = "O21:U33") #ISG and DCP for states + MX
-dfCutbacksVolsFed <- read_excel(sExcelFile, sheet = "Data",  range = "Y21:Y33") # Federal cutback
+dfCutbacksElev <- read_excel(sExcelFile, sheet = "Data",  range = "H21:H41") #Elevations
+dfCutbacksVols <- read_excel(sExcelFile, sheet = "Data",  range = "O21:U41") #ISG and DCP for states + MX
+dfCutbacksVolsFed <- read_excel(sExcelFile, sheet = "Data",  range = "Y21:Y41") # Federal cutback
 #Merge into one data frame
 dfCutbacks <- dfCutbacksElev
 dfCutbacks$RowNum <- 0
@@ -386,11 +398,13 @@ yMax = 10
 yMin = 0
 dfOneToOne <- data.frame(MeadVol = c(yMin,yMax), Delivery = c(yMin,yMax))
 
+nRows <- nrow(dfCutbacks)
+
 ### Plot #1. DCP and ISG Deliveries versus Mead active storage
 ggplot() +
   #DCP and ISG step functions
-  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
-  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
+  geom_step(data=dfCutbacks[1:nRows-1,],aes(x=MeadActiveVolume/1000000,y=DeliveryISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
+  geom_step(data=dfCutbacks[1:nRows-1,],aes(x=MeadActiveVolume/1000000,y=DeliveryDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
   geom_line(data=dfOneToOne,aes(x=MeadVol,y=Delivery, color="1:1",linetype="1:1"), size=1) +
   
   scale_color_manual(name="Guide1",values = c("1:1"="Black","ISG"="Blue", "DCP"="Red"),breaks=c("ISG","DCP","1:1"), labels= c("Interim Shortage Guidelines (2008)","Drought Contingency Plan (2019)","1:1" )) +
@@ -420,8 +434,8 @@ dfProtectLine <- data.frame(MeadVol=c(vProtectLevel,vProtectLevel+yMax),Delivery
 
 ggplot() +
   #DCP and ISG step functions
-  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
-  geom_step(data=dfCutbacks[1:12,],aes(x=MeadActiveVolume/1000000,y=DeliveryDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
+  geom_step(data=dfCutbacks[1:nRows-1,],aes(x=MeadActiveVolume/1000000,y=DeliveryISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
+  geom_step(data=dfCutbacks[1:nRows-1,],aes(x=MeadActiveVolume/1000000,y=DeliveryDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
   geom_line(data=dfOneToOne,aes(x=MeadVol,y=Delivery, color="1:1 Line to Dead Pool",linetype="1:1 Line to Dead Pool"), size=1) +
   geom_line(data=dfProtectLine,aes(x=MeadVol,y=Delivery, color="1:1 Line-Protect 1,025",linetype="1:1 Line-Protect 1,025"), size=1) +
   
@@ -497,7 +511,9 @@ ggplot() +
 dfInflowSimulations <- data.frame(Storage=0, Year=0, index=0, Inflow=0, Release=0)
 #Mead Initial Storage on April 9, 2019
 sMeadApril2019 <- interp1(xi = 1089.74,y=dfMeadElevStor$`Live Storage (ac-ft)`,x=dfMeadElevStor$`Elevation (ft)`, method="linear")
-sMeadDCPBottom <- interp1(xi = 1000,y=dfMeadElevStor$`Live Storage (ac-ft)`,x=dfMeadElevStor$`Elevation (ft)`, method="linear")
+sMeadOct2019 <- interp1(xi = 1083.05,y=dfMeadElevStor$`Live Storage (ac-ft)`,x=dfMeadElevStor$`Elevation (ft)`, method="linear")
+sMeadStartStorage <- sMeadOct2019
+sMeadDCPBottom <- interp1(xi = 900,y=dfMeadElevStor$`Live Storage (ac-ft)`,x=dfMeadElevStor$`Elevation (ft)`, method="linear")
 #Define start year
 startYear <- 2019
 #Define the maximum number of iterations. Use an even number so the inflow labels plot nicely
@@ -510,7 +526,7 @@ for (tInflow in seq(5,12, by=1)*1e6){
     #debug(TimeToReservoirTarget)
   
     # With lower basin delivery losses
-    tRes <- TimeToReservoirTarget(Sinit = sMeadApril2019, inflow = tInflow, deliveryVolume = dfCutbacks$DeliveryDCP, 
+    tRes <- TimeToReservoirTarget(Sinit = sMeadStartStorage, inflow = tInflow, deliveryVolume = dfCutbacks$DeliveryDCP, 
                                 deliveryResStorage = dfCutbacks$MeadActiveVolume, eRate = eRateToUse,  ResArea = dfMeadElevStor$`Area (acres)`, 
                                 ResVolume = dfMeadElevStor$`Live Storage (ac-ft)`, MaxIts = maxIts, sMethodRelease = "constant", 
                                 sMinTarget = sMeadDCPBottom, sMaxTarget = tMaxVol*1e6, startYear = startYear )
@@ -536,9 +552,11 @@ dfTimeResults <- dfInflowSimulations
 ePowellRate <- dfEvapRates %>% filter(Reservoir %in% c("Powell"), Source %in% c("Reclamation")) %>% select(Rate.ft.per.year)
 ePowellArea <- interp1(xi = 9e6,x=dfPowellElevStor$`Live Storage (ac-ft)` , y=dfPowellElevStor$`Area (acres)`, method="linear")
 
-vMeadInflowToLeeNaturalCorrection <- -300000 + 5e6 + ePowellRate*ePowellArea
+vMeadInflowToLeeNaturalCorrection <- -300000 + 4e6 + ePowellRate*ePowellArea
 dfTimeResults$LeeFerryNaturalFlow <- dfTimeResults$Inflow + as.numeric(vMeadInflowToLeeNaturalCorrection )
 
+#Calculate Powell Release from Mead Inflow
+dfTimeResults$PowellRelease <- MeadInflowToPowellRelease(dfTimeResults$Inflow, 300000)
 
 # Select even rows for plotting flow labels
 dfTimeResultsEven <- dfTimeResults[seq(3,nrow(dfTimeResults),by=3),]
@@ -561,6 +579,16 @@ dfPolyLabel <- data.frame(id = ids,
                          Label = c("Mead Releases Undefined\nStates Renegotiate", "Drought Contingency Plan\nReleases"),
                          DumVal = c(1:nPts))
 
+### New PolyLabel with only one row
+dfPolyLabel2 <- data.frame(id = ids[2],
+                          Label = c("Drought Contingency Plan\nReleases"),
+                          DumVal = c(1))
+#Calculate midpoints
+dfPolyLabel2$MidYear <- 0
+dfPolyLabel2$MidMead <- 0
+dfPolyLabel2$MidInflow <- mean(c(5,12))
+dfPolyLabel2[point,c("MidYear")] =  0.35*min(dfPositions[(4*(point-1)+1):(4*point),c("Year")]) + 0.65*max(dfPositions[(4*(point-1)+1):(4*point),c("Year")])
+
 
 #Calculate midpoints for each polygon. This is the average of the cooridinates for
 # the polygon
@@ -568,6 +596,7 @@ dfPolyLabel <- data.frame(id = ids,
 dfPolyLabel$MidYear <- 0
 dfPolyLabel$MidMead <- 0
 dfPolyLabel$MidInflow <- mean(c(5,12))
+
 
 for (point in 1:nPts) {
   #dfPolyLabel[point,c("MidYear")] = mean(dfPositions[(4*(point-1)+1):(4*point),c("Year")])
@@ -609,8 +638,6 @@ ggplot() +
   scale_linetype_manual(name="Guide1", values = c("IntGuide"="longdash"), breaks=c("IntGuide"), labels= c("Interim Guidelines Expire")) +
   geom_text(aes(x=tInterGuideExpire, y=25, label="Interim Guidelines\nExpire"), angle = 0, size = 7, hjust="middle") +
   geom_label(aes(x=2037, y=20, label="Steady Inflow (MAF/year)\n(Stress Test)", fontface="bold"), angle = 0, size = 7) +
-  
-  
    
   #Label the constant inflow contours
   geom_label(data=dfTimeResultsEven , aes( x = Year, y = Storage/1e6, label = Inflow/1e6, fontface="bold"), size=5, angle = 0) + 
@@ -680,6 +707,43 @@ ggplot() +
   theme(text = element_text(size=20), legend.text=element_text(size=18)) #,
         #legend.position = "none")
 
+#Another Plot of Lake Powell Release: storage versus time with different Annual Powell Release traces. Different DCP zones. And a vertical line showing the end of the Interim Guidelines
+ggplot() +
+  #Polygon zones
+  geom_polygon(data = dfPolyAll, aes(x = Year, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyAll$DumVal)), show.legend = F) +
+  #Inflow traces
+  geom_line(data=dfTimeResults,aes(x=Year,y=Storage/1e6, group = PowellRelease/1e6, color = (PowellRelease/1e6)), size=2) +
+  
+  #Interim guidelines expire
+  geom_line(data=dfIntGuidelinesExpire,aes(x=Year,y=MeadVol, linetype="IntGuide"), size=3,show.legend = F) +
+  scale_linetype_manual(name="Guide1", values = c("IntGuide"="longdash"), breaks=c("IntGuide"), labels= c("Interim Guidelines Expire")) +
+  geom_text(aes(x=tInterGuideExpire, y=25, label="Interim Guidelines\nExpire"), angle = 0, size = 7, hjust="middle") +
+  geom_label(aes(x=2037, y=18, label="Powell Release (MAF/year)\n= [Mead Inflow] + [0.3 MAF/year GC Tribs]", fontface="bold"), angle = 0, size = 7) +
+  
+  
+  
+  #Label the constant inflow contours
+  geom_label(data=dfTimeResultsEven , aes( x = Year, y = Storage/1e6, label = round(PowellRelease/1e6,1), fontface="bold"), size=5, angle = 0) + 
+  #Label the polygons
+  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+  
+  #Y-axis: Active storage on left, Elevation with labels on right 
+  scale_y_continuous(breaks = seq(0,tMaxVol,by=5), labels = seq(0,tMaxVol,by=5), limits = c(0, tMaxVol), 
+                     sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$labelSecY)) +
+  #limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+  #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
+  
+  #Color scale for polygons - increasing red as go to lower levels
+  scale_fill_manual(breaks = c(2,1),values = c(palReds[5],palReds[4]),labels = dfPolyLabel$Label ) + 
+  
+  
+  theme_bw() +
+  
+  labs(x="Year", y="Mead Active Storage (MAF)", color =  "Powell Release\n(MAF/year)") +
+  #theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+  #      legend.position = c(0.8,0.7))
+  theme(text = element_text(size=20), legend.text=element_text(size=18),
+        legend.position = "none")
 
 
 
@@ -695,7 +759,7 @@ ggplot() +
   geom_line(data=dfIntGuidelinesExpire,aes(x=Year,y=MeadVol, linetype="IntGuide"), size=3,show.legend = F) +
   scale_linetype_manual(name="Guide1", values = c("IntGuide"="longdash"), breaks=c("IntGuide"), labels= c("Interim Guidelines Expire")) +
   geom_text(aes(x=tInterGuideExpire, y=25, label="Interim Guidelines\nExpire"), angle = 0, size = 7, hjust="middle") +
-  geom_label(aes(x=2037, y=18, label="Lee Ferry Natural Flow (MAF/year)\n= [Mead Inflow] - [GC Tribs] + [Powell Evap] + [UB Consump. Use]\n= [Mead Inflow] - 0.3 + 0.46 + 5", fontface="bold"), angle = 0, size = 7) +
+  geom_label(aes(x=2037, y=18, label="Lee Ferry Natural Flow (MAF/year)\n= [Mead Inflow] - [GC Tribs] + [Powell Evap] + [UB Consump. Use]\n= [Mead Inflow] - 0.3 + 0.46 + 4", fontface="bold"), angle = 0, size = 7) +
   
   
   
@@ -778,7 +842,7 @@ dfTimeInflowStorageResults$Label <- ifelse(dfTimeInflowStorageResults$Status == 
 
 
 #Now do the plot: X-axis is inflow, y-axis is initial storage, z-labels are time to catastrophy.
-ggplot() +
+p <- ggplot() +
   #Polygon zones
   geom_polygon(data = dfPolyAll, aes(x = Inflow, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyAll$DumVal)), show.legend = F) +
   
