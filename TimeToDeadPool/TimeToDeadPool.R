@@ -559,11 +559,14 @@ dfTimeResults <- dfInflowSimulations
 ePowellRate <- dfEvapRates %>% filter(Reservoir %in% c("Powell"), Source %in% c("Reclamation")) %>% select(Rate.ft.per.year)
 ePowellArea <- interp1(xi = 9e6,x=dfPowellElevStor$`Live Storage (ac-ft)` , y=dfPowellElevStor$`Area (acres)`, method="linear")
 
-vMeadInflowToLeeNaturalCorrection <- -300000 + 4e6 + ePowellRate*ePowellArea
+GrandCanyonTribFlows <- 300000
+
+vMeadInflowToLeeNaturalCorrection <- -GrandCanyonTribFlows + 4e6 + ePowellRate*ePowellArea
 dfTimeResults$LeeFerryNaturalFlow <- dfTimeResults$Inflow + as.numeric(vMeadInflowToLeeNaturalCorrection )
 
+
 #Calculate Powell Release from Mead Inflow
-dfTimeResults$PowellRelease <- MeadInflowToPowellRelease(dfTimeResults$Inflow, 300000)
+dfTimeResults$PowellRelease <- MeadInflowToPowellRelease(dfTimeResults$Inflow, GrandCanyonTribFlows)
 
 # Select even rows for plotting flow labels
 dfTimeResultsEven <- dfTimeResults[seq(3,nrow(dfTimeResults),by=3),]
@@ -910,65 +913,97 @@ print(p)
 
 
 ### Plot Start Storage-Inflow results as contour plot
+# y-axis: Mead active storage
+# x-axis: either Steady Mead Inflow, Powell Release, or Lee Ferry Natural flow
+# Contours: time to dead pool, time to fill, steady end storage
+
+# Create a Data Frame to populate the three x-axes: Steady Mead Inflow, Powell Release, Lee Ferry Natural Flow
+dfInflowAxes <- data.frame(Title = c("Steady Mead Inflow", "Powell Release", "Lee Ferry Natural Flow"),
+                           TranformFromSteady = as.numeric(c(0,GrandCanyonTribFlows ,vMeadInflowToLeeNaturalCorrection)))
+
 
 # plot following https://www.r-statistics.com/2016/07/using-2d-contour-plots-within-ggplot2-to-visualize-relationships-between-three-variables/
 
 # Specify the contour intervals (years to reach target)
-# Still can't get contour labels to plot correctly
-### Look at https://cran.r-project.org/web/packages/metR/vignettes/Visualization-tools.html
+# See https://cran.r-project.org/web/packages/metR/vignettes/Visualization-tools.html
 
 #Calculate inflow positions for labels of plot areas: bottom, mid, top. These are the min and max
 #inflows for each group
-#Remove plyr
+#Remove plyr to group
 detach(package:plyr)
-install.packages("metR")
-library(metR)
 
-dfStatusPositions <- dfTimeInflowStorageResultsClean %>% group_by(Status) %>% summarize(MinInflow = min(Inflow), MaxInflow = max(Inflow))
-#Add textlabels
-dfStatusPositions$Label <- c("Time to Dead Pool\n(Years)","Steady End Storage\n(MAF)", "Time to Full\n(Years)")
-dfStatusPositions$MidInflow <- (dfStatusPositions$MinInflow + dfStatusPositions$MaxInflow)/2
+if (!require(metR)) { 
+  install.packages("metR") 
+  library(metR) 
+}
 
-#Test contour with geom_contour
-ggplot(dfTimeInflowStorageResultsClean, aes(x=Inflow/1e6,y= InitStorage/1e6, z = ContourValue, color = Status)) +
-  geom_contour()   +
+nRows <- nrow(dfInflowAxes)
 
-  geom_text_contour(aes(z=ContourValue))
+for (i in (1:nRows)) {
+  print(i)
+}
 
-#Test again with aestetics inside geom_contour
-ggplot() +
-  geom_polygon(data = dfPolyAll, aes(x = Inflow, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyAll$DumVal)), show.legend = F) +
+pPlot <- seq(1,nRows,by=1)
+
+# Loop over the inflow axes
+for (i in (1:nRows)) {
+  #i <- 3
+  #Print out the iteration
+  print(i)
   
-  geom_contour(data=dfTimeInflowStorageResultsClean, aes(x=Inflow/1e6,y= InitStorage/1e6, z = ContourValue, color = Status), binwidth=4, size=1.5)   +
-  geom_text_contour(data=dfTimeInflowStorageResultsClean, aes(x=Inflow/1e6,y= InitStorage/1e6, z = ContourValue), binwidth=4, size=6) +
-  geom_label(data=dfStatusPositions, aes(x = MidInflow/1e6 , y = tMaxVol+2, label = Label, fontface="bold", color=Status), size=6, angle = 0) + 
+  #Calculate the inflow values to use
+  dfTimeInflowStorageResultsClean$InflowToUse <- dfTimeInflowStorageResultsClean$Inflow + 
+                                                    dfInflowAxes[i,2]
+
+  #Calculate a convienent flow scale to use
+  min(dfTimeInflowStorageResultsClean$InflowToUse/1e6,1e6)
+  xFlowScaleCurr <- seq(floor(min(dfTimeInflowStorageResultsClean$InflowToUse/1e6)),ceiling(max(dfTimeInflowStorageResultsClean$InflowToUse/1e6)))
   
-  #Label the polygons
-  #  geom_label(data=dfPolyLabel, aes(x = xLabelPos, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+
+  #Calculate positions for the group labels
+  dfStatusPositions <- dfTimeInflowStorageResultsClean %>% group_by(Status) %>% summarize(MinInflow = min(InflowToUse), MaxInflow = max(InflowToUse))
+  #Add textlabels
+  dfStatusPositions$Label <- c("Time to Dead Pool\n(Years)","Steady End Storage\n(MAF)", "Time to Fill\n(Years)")
+  dfStatusPositions$MidInflow <- (dfStatusPositions$MinInflow + dfStatusPositions$MaxInflow)/2
   
-  #Y-axis: Active storage on left, Elevation with labels on right 
-  scale_y_continuous(breaks = seq(0,tMaxVol,by=5), labels = seq(0,tMaxVol,by=5), limits = c(0, tMaxVol+3), 
-                     sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$labelSecY)) +
-  scale_x_continuous(breaks = xFlowScale, labels = xFlowScale) +
-  #limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
-  #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
-  
-  #Color scale for polygons - increasing red as go to lower levels
-  scale_fill_manual(breaks = c(2,1),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
-  #scale_fill_manual(guide="Guide2", breaks = c("Top","Middle","Bottom"),values = c("Blue","Green","Red"),labels = c("Fill (years)","Steady volume (maf)","To 1,025 (years)" )) + 
-  scale_color_manual(breaks = c("Top","Middle","Bottom"), values=c("red","purple","blue"), labels=c("To Fill (years)","Steady volume (maf)","To 1,025 (years)")) +
-  
-  
-  theme_bw() +
-  
-  scale_size(guide="none") +
-  
-  labs(x="Steady Inflow (MAF/year)", y="Mead Active Storage (MAF)") +
-  #theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
-  #      legend.position = c(0.8,0.7))
-  theme(text = element_text(size=20), 
-        legend.position = "none")
-  
+  #Use geom_contour as contour plot
+ pPlot <- ggplot() +
+    geom_polygon(data = dfPolyAll, aes(x = Inflow + dfInflowAxes[i,2]/1e6, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyAll$DumVal)), show.legend = F) +
+    
+    geom_contour(data=dfTimeInflowStorageResultsClean, aes(x=InflowToUse/1e6,y= InitStorage/1e6, z = ContourValue, color = Status), binwidth=4, size=1.5)   +
+    geom_text_contour(data=dfTimeInflowStorageResultsClean, aes(x=InflowToUse/1e6,y= InitStorage/1e6, z = ContourValue), binwidth=4, size=6, check_overlap = TRUE, min.size = 5) +
+    geom_label(data=dfStatusPositions, aes(x = MidInflow/1e6 , y = tMaxVol+2, label = Label, fontface="bold", color=Status), size=6, angle = 0) + 
+    
+    #Label the polygons
+    #  geom_label(data=dfPolyLabel, aes(x = xLabelPos, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+    
+    #Y-axis: Active storage on left, Elevation with labels on right 
+    scale_y_continuous(breaks = seq(0,tMaxVol,by=5), labels = seq(0,tMaxVol,by=5), limits = c(0, tMaxVol+3), 
+                       sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$labelSecY)) +
+    scale_x_continuous(breaks = xFlowScaleCurr, labels = xFlowScaleCurr) +
+    #limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+    #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
+    
+    #Color scale for polygons - increasing red as go to lower levels
+    scale_fill_manual(breaks = c(2,1),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
+    #scale_fill_manual(guide="Guide2", breaks = c("Top","Middle","Bottom"),values = c("Blue","Green","Red"),labels = c("Fill (years)","Steady volume (maf)","To 1,025 (years)" )) + 
+    scale_color_manual(breaks = c("Top","Middle","Bottom"), values=c("red","purple","blue"), labels=c("To Fill (years)","Steady volume (maf)","To 1,025 (years)")) +
+    
+    
+    theme_bw() +
+    
+    scale_size(guide="none") +
+    
+    labs(x=paste(dfInflowAxes[i,1],"\n(MAF)"), y="Mead Active Storage (MAF)") +
+    #theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+    #      legend.position = c(0.8,0.7))
+    theme(text = element_text(size=20), 
+          legend.position = "none")
+ 
+    print(pPlot)
+ 
+  # End Loop over axes
+}
 
 
 
