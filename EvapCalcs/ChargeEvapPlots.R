@@ -236,6 +236,8 @@ dfPowellEvap$EvapVolMaxLo <- dfPowellEvap$`Area (acres)`*EvapRatesToUsePowell[2]
 dfPowellEvap$EvapVolMin <- dfPowellEvap$`Live Storage (ac-ft)` - interp2(xi = dfPowellEvap$`Elevation (ft)` - EvapRatesToUsePowell[1], x=dfPowellElevStor$`Elevation (ft)` , y=dfPowellElevStor$`Live Storage (ac-ft)`, method="linear")
 #Calculate percent erro off MaxUp and MaxLo values
 dfPowellEvap$RangeError <- (dfPowellEvap$EvapVolMaxUp - dfPowellEvap$EvapVolMaxLo)/dfPowellEvap$EvapVolMaxLo
+#Calculate half the difference
+dfPowellEvap$Range <- (dfPowellEvap$EvapVolMaxUp - dfPowellEvap$EvapVolMaxLo)/1e6/2
 
 strEvapRangePowell <- paste0("(",EvapRatesToUsePowell[2]," - ", EvapRatesToUsePowell[3], " feet/year)")
 strEvapRangeMead <-  paste0("(",EvapRatesToUse[2]," - ", EvapRatesToUse[3], " feet/year)")

@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1580867467161.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2576D0BE",
+    "lastKnownWriteTime" : 8017342125385807465,
+    "last_content_update" : 1580867467161,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "3E096BBA",
+        "caption" : "dfInflowAxes",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfInflowAxes&cache_key=3E096BBA",
+        "displayedObservations" : "3",
+        "environment" : "",
+        "object" : "dfInflowAxes",
+        "preview" : "0",
+        "totalObservations" : "3",
+        "variables" : "4"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -267,9 +267,22 @@ dfGCFlows$Month <- month(as.Date(dfGCFlows$Date,"%Y-%m-%d"))
 dfGCFlows$WaterYear <- ifelse(dfGCFlows$Month >= 10,dfGCFlows$Year,dfGCFlows$Year - 1)
 dfGCFlowsByYear <- aggregate(dfGCFlows$Total, by=list(Category=dfGCFlows$WaterYear), FUN=sum)
 
+#### Figure 0 - Plot Grand Canyon Tributary Inflows as a box-and-whiskers
 #Plot as a box-and whiskers
-ggplot(dfGCFlowsByYear, aes(y=x)) +
-     geom_boxplot()
+
+ggplot(dfGCFlowsByYear, aes(y=x/1e6)) +
+    geom_boxplot() +
+    theme_bw() +
+    
+    labs(x="", y="Grand Canyon Tributary Inflows\n(MAF per year)") +
+    #theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+    #      legend.position = c(0.8,0.7))
+    theme(text = element_text(size=20), 
+          legend.position = "none",axis.text.x = element_blank(), axis.ticks = element_blank())
+
+ggsave("Fig0-GrandCanyonTribFlows.jpg",width = 6,
+       height = 6, units = "in",
+       dpi = 300)
 
 #Calculate the median value
 vMedGCFlow <- median(dfGCFlowsByYear$x)
@@ -428,6 +441,39 @@ ggplot() +
   labs(x="Mead Active Storage (MAF)", y="Delivery (MAF per year)") +
   theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.7,0.5))
 
+ggsave("Fig1-DeliveryVsMeadStorage.jpg",width = 12,
+       height = 8, units = "in",
+       dpi = 300)
+
+
+### Plot #1B. ISG only Deliveries versus Mead active storage
+ggplot() +
+  #DCP and ISG step functions
+  geom_step(data=dfCutbacks[1:nRows-1,],aes(x=MeadActiveVolume/1000000,y=DeliveryISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
+  #geom_step(data=dfCutbacks[1:nRows-1,],aes(x=MeadActiveVolume/1000000,y=DeliveryDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
+  geom_line(data=dfOneToOne,aes(x=MeadVol,y=Delivery, color="1:1",linetype="1:1"), size=1) +
+  
+  scale_color_manual(name="Guide1",values = c("1:1"="Black","ISG"="Blue"),breaks=c("ISG","1:1"), labels= c("Interim Shortage Guidelines (2008)","1:1")) +
+  scale_linetype_manual(name="Guide1",values=c("1:1"="dashed","ISG"="longdash"), breaks=c("ISG", "1:1"), labels= c("Interim Shortage Guidelines (2008)","1:1" )) +
+  
+  scale_x_continuous(breaks = c(0,5,10,15,20,25),labels=c(0,5,10,15, 20,25), limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+                     sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$label)) +
+  
+  guides(fill = guide_legend(keywidth = 1, keyheight = 1),
+         linetype=guide_legend(keywidth = 3, keyheight = 1),
+         colour=guide_legend(keywidth = 3, keyheight = 1)) +
+  ylim(yMin,yMax) +
+  theme_bw() +
+  
+  labs(x="Mead Active Storage (MAF)", y="Delivery (MAF per year)") +
+  theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.7,0.5))
+
+ggsave("Fig1-ISGDeliveryVsMeadStorage.jpg",width = 12,
+       height = 8, units = "in",
+       dpi = 300)
+
+
+
 ### Plot #2. DCP and ISG Deliveries versus Mead active storage with Mead protection level
 
 #Protect to bottom of DCP cutbacks
@@ -460,6 +506,10 @@ ggplot() +
   
   labs(x="Mead Active Storage (MAF)", y="Delivery (MAF per year)") +
   theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.7,0.5))
+
+ggsave("Fig2-DeliveryVsMeadStorageProtect.jpg",width = 12,
+       height = 8, units = "in",
+       dpi = 300)
 
 
 ### Plot 3 - DCP Delivery vs Available Water for varying inflows. Available water is Mead Active Storage + Inflow.
@@ -506,7 +556,9 @@ ggplot() +
   labs(x="Available Water (Mead Active Storage + Inflow) (MAF)", y="Delivery (MAF per year)") +
   theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.7,0.5))
 
-
+#ggsave("Fig3-DeliveryVsAvailWater.jpg",width = 12,
+#       height = 8, units = "in",
+#       dpi = 300)
 
 ###############################################################################################
 # RUN MEAD SIMULATIONS STARTING AT CURRENT APRIL 2019 storage WITH DIFFERNT cONSTANT INFLOWS ####
@@ -647,12 +699,13 @@ ggplot() +
   geom_line(data=dfIntGuidelinesExpire,aes(x=Year,y=MeadVol, linetype="IntGuide"), size=3,show.legend = F) +
   scale_linetype_manual(name="Guide1", values = c("IntGuide"="longdash"), breaks=c("IntGuide"), labels= c("Interim Guidelines Expire")) +
   geom_text(aes(x=tInterGuideExpire, y=25, label="Interim Guidelines\nExpire"), angle = 0, size = 7, hjust="middle") +
-  geom_label(aes(x=2037, y=20, label="Steady Inflow (MAF/year)\n(Stress Test)", fontface="bold"), angle = 0, size = 7) +
+  #Label the plot
+  #geom_label(aes(x=2037, y=20, label="Steady Inflow (MAF/year)\n(Stress Test)", fontface="bold"), angle = 0, size = 7) +
    
   #Label the constant inflow contours
   geom_label(data=dfTimeResultsEven , aes( x = Year, y = Storage/1e6, label = Inflow/1e6, fontface="bold"), size=5, angle = 0) + 
   #Label the polygons
-  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold", fill=as.factor(dfPolyLabel$DumVal)), size=6, angle = 0) + 
   
   #Y-axis: Active storage on left, Elevation with labels on right 
   scale_y_continuous(breaks = seq(0,tMaxVol,by=5), labels = seq(0,tMaxVol,by=5), limits = c(0, tMaxVol), 
@@ -661,7 +714,9 @@ ggplot() +
   #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
 
   #Color scale for polygons - increasing red as go to lower levels
-  scale_fill_manual(breaks = c(2,1),values = c(palReds[5],palReds[4]),labels = dfPolyLabel$Label ) + 
+  #scale_fill_manual(breaks = c(2,1),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
+  scale_fill_manual(breaks = as.factor(dfPolyLabel$DumVal),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
+  
   
     
   theme_bw() +
@@ -672,6 +727,9 @@ ggplot() +
   theme(text = element_text(size=20), legend.text=element_text(size=18),
         legend.position = "none")
 
+ggsave("Fig4-StorageVsTime-MeadInflow.jpg",width = 12,
+       height = 8, units = "in",
+       dpi = 300)
 
 #Calculate the final Mead Elevation
 dfTimeResults$Elevation <- interp2(xi = dfTimeResults$Storage,y=dfMeadElevStor$`Elevation (ft)` , x=dfMeadElevStor$`Live Storage (ac-ft)`, method="linear")
@@ -690,13 +748,13 @@ ggplot() +
   geom_line(data=dfIntGuidelinesExpire,aes(x=Year,y=MeadVol, linetype="IntGuide"), size=3,show.legend = F) +
   scale_linetype_manual(name="Guide1", values = c("IntGuide"="longdash"), breaks=c("IntGuide"), labels= c("Interim Guidelines Expire")) +
   geom_text(aes(x=tInterGuideExpire, y=25, label="Interim Guidelines\nExpire"), angle = 0, size = 7, hjust="middle") +
-  geom_label(aes(x=2037, y=20, label="Release\n(MAF/year)", fontface="bold"), angle = 0, size = 7) +
+  #geom_label(aes(x=2037, y=20, label="Release\n(MAF/year)", fontface="bold"), angle = 0, size = 7) +
   
   
   #Label the lines with release
   geom_label(data=dfTimeResultsEven , aes( x = Year, y = Storage/1e6, label = round(Release/1e6,1), fontface="bold"), size=5, angle = 0) + 
   #Label the polygons
-  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold", fill=as.factor(dfPolyLabel$DumVal)), size=6, angle = 0) + 
   
   #Y-axis: Active storage on left, Elevation with labels on right 
   scale_y_continuous(breaks = seq(0,tMaxVol,by=5), labels = seq(0,tMaxVol,by=5), limits = c(0, tMaxVol), 
@@ -705,7 +763,7 @@ ggplot() +
   #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
   
   #Color scale for polygons - increasing red as go to lower levels
-  scale_fill_manual(breaks = c(2,1),values = c(palReds[5],palReds[4]),labels = dfPolyLabel$Label ) + 
+  scale_fill_manual(breaks = as.factor(dfPolyLabel$DumVal),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
   scale_color_continuous(low=pBlues[2],high=pBlues[9]) +
   guides(color = guide_legend("Steady Inflow\n(MAF/year)"), size = guide_legend("Steady Inflow\n(MAF/year)")) +
   
@@ -728,14 +786,14 @@ ggplot() +
   geom_line(data=dfIntGuidelinesExpire,aes(x=Year,y=MeadVol, linetype="IntGuide"), size=3,show.legend = F) +
   scale_linetype_manual(name="Guide1", values = c("IntGuide"="longdash"), breaks=c("IntGuide"), labels= c("Interim Guidelines Expire")) +
   geom_text(aes(x=tInterGuideExpire, y=25, label="Interim Guidelines\nExpire"), angle = 0, size = 7, hjust="middle") +
-  geom_label(aes(x=2037, y=18, label="Powell Release (MAF/year)\n= [Mead Inflow] + [0.3 MAF/year GC Tribs]", fontface="bold"), angle = 0, size = 7) +
+  #geom_label(aes(x=2037, y=18, label="Powell Release (MAF/year)\n= [Mead Inflow] + [0.3 MAF/year GC Tribs]", fontface="bold"), angle = 0, size = 7) +
   
   
   
   #Label the constant inflow contours
   geom_label(data=dfTimeResultsEven , aes( x = Year, y = Storage/1e6, label = round(PowellRelease/1e6,1), fontface="bold"), size=5, angle = 0) + 
   #Label the polygons
-  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold", fill=as.factor(dfPolyLabel$DumVal)), size=6, angle = 0) + 
   
   #Y-axis: Active storage on left, Elevation with labels on right 
   scale_y_continuous(breaks = seq(0,tMaxVol,by=5), labels = seq(0,tMaxVol,by=5), limits = c(0, tMaxVol), 
@@ -744,7 +802,7 @@ ggplot() +
   #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
   
   #Color scale for polygons - increasing red as go to lower levels
-  scale_fill_manual(breaks = c(2,1),values = c(palReds[5],palReds[4]),labels = dfPolyLabel$Label ) + 
+  scale_fill_manual(breaks = as.factor(dfPolyLabel$DumVal),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
   
   
   theme_bw() +
@@ -755,7 +813,9 @@ ggplot() +
   theme(text = element_text(size=20), legend.text=element_text(size=18),
         legend.position = "none")
 
-
+ggsave("Fig5-StorageVsTime-MeadRelease.jpg",width = 12,
+       height = 8, units = "in",
+       dpi = 300)
 
 
 #Another Plot of Estimated Lee Ferry Natural Flow: storage versus time with different Lee Ferry Natural inflow traces. Different DCP zones. And a vertical line showing the end of the Interim Guidelines
@@ -769,14 +829,14 @@ ggplot() +
   geom_line(data=dfIntGuidelinesExpire,aes(x=Year,y=MeadVol, linetype="IntGuide"), size=3,show.legend = F) +
   scale_linetype_manual(name="Guide1", values = c("IntGuide"="longdash"), breaks=c("IntGuide"), labels= c("Interim Guidelines Expire")) +
   geom_text(aes(x=tInterGuideExpire, y=25, label="Interim Guidelines\nExpire"), angle = 0, size = 7, hjust="middle") +
-  geom_label(aes(x=2037, y=18, label="Lee Ferry Natural Flow (MAF/year)\n= [Mead Inflow] - [GC Tribs] + [Powell Evap] + [UB Consump. Use]\n= [Mead Inflow] - 0.3 + 0.46 + 4", fontface="bold"), angle = 0, size = 7) +
+  #geom_label(aes(x=2037, y=18, label="Lee Ferry Natural Flow (MAF/year)\n= [Mead Inflow] - [GC Tribs] + [Powell Evap] + [UB Consump. Use]\n= [Mead Inflow] - 0.3 + 0.46 + 4", fontface="bold"), angle = 0, size = 7) +
   
   
   
   #Label the constant inflow contours
   geom_label(data=dfTimeResultsEven , aes( x = Year, y = Storage/1e6, label = round(LeeFerryNaturalFlow/1e6,0), fontface="bold"), size=5, angle = 0) + 
   #Label the polygons
-  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+  geom_label(data=dfPolyLabel, aes(x = MidYear, y = MidMead/1e6, label = Label, fontface="bold", fill=as.factor(dfPolyLabel$DumVal)), size=6, angle = 0) + 
   
   #Y-axis: Active storage on left, Elevation with labels on right 
   scale_y_continuous(breaks = seq(0,tMaxVol,by=5), labels = seq(0,tMaxVol,by=5), limits = c(0, tMaxVol), 
@@ -785,7 +845,7 @@ ggplot() +
   #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
   
   #Color scale for polygons - increasing red as go to lower levels
-  scale_fill_manual(breaks = c(2,1),values = c(palReds[5],palReds[4]),labels = dfPolyLabel$Label ) + 
+  scale_fill_manual(breaks = as.factor(dfPolyLabel$DumVal),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
   
   
   theme_bw() +
@@ -797,7 +857,9 @@ ggplot() +
         legend.position = "none")
 
 
-
+ggsave("Fig6-MeadStorageVsTime-LeeFerryFlow.jpg",width = 12,
+       height = 8, units = "in",
+       dpi = 300)
 
 
 
@@ -919,7 +981,8 @@ print(p)
 
 # Create a Data Frame to populate the three x-axes: Steady Mead Inflow, Powell Release, Lee Ferry Natural Flow
 dfInflowAxes <- data.frame(Title = c("Steady Mead Inflow", "Powell Release", "Lee Ferry Natural Flow"),
-                           TranformFromSteady = as.numeric(c(0,GrandCanyonTribFlows ,vMeadInflowToLeeNaturalCorrection)))
+                           TranformFromSteady = as.numeric(c(0,-GrandCanyonTribFlows ,vMeadInflowToLeeNaturalCorrection)),
+                           FileName = c("MeadInflow","PowellRelease","LeeFerry"))
 
 
 # plot following https://www.r-statistics.com/2016/07/using-2d-contour-plots-within-ggplot2-to-visualize-relationships-between-three-variables/
@@ -963,7 +1026,7 @@ for (i in (1:nRows)) {
   #Calculate positions for the group labels
   dfStatusPositions <- dfTimeInflowStorageResultsClean %>% group_by(Status) %>% summarize(MinInflow = min(InflowToUse), MaxInflow = max(InflowToUse))
   #Add textlabels
-  dfStatusPositions$Label <- c("Time to Dead Pool\n(Years)","Steady End Storage\n(MAF)", "Time to Fill\n(Years)")
+  dfStatusPositions$Label <- c("Time to Dead Pool\n(Years)","Steady Storage\n(MAF)", "Time to Fill\n(Years)")
   dfStatusPositions$MidInflow <- (dfStatusPositions$MinInflow + dfStatusPositions$MaxInflow)/2
   
   #Use geom_contour as contour plot
@@ -994,13 +1057,20 @@ for (i in (1:nRows)) {
     
     scale_size(guide="none") +
     
-    labs(x=paste(dfInflowAxes[i,1],"\n(MAF)"), y="Mead Active Storage (MAF)") +
+    labs(x=paste(dfInflowAxes[i,1]," (MAF per year)"), y="Mead Active Storage (MAF)") +
     #theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
     #      legend.position = c(0.8,0.7))
     theme(text = element_text(size=20), 
           legend.position = "none")
  
     print(pPlot)
+    
+    sFigNum <- paste("Fig",i+6,"-InflowDurationStorage",sep="")
+    sFigName <- paste(sFigNum,dfInflowAxes[i,3],sep="")
+    
+    ggsave(paste(sFigName,".jpg"),width = 12,
+           height = 7.5, units = "in",
+           dpi = 300)
  
   # End Loop over axes
 }

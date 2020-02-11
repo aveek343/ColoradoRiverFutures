@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1580933839337.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "9C99998F",
+    "lastKnownWriteTime" : 7308604914264011873,
+    "last_content_update" : 1580933839337,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "4D72BB11",
+        "caption" : "dfEvapRates",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfEvapRates&cache_key=4D72BB11",
+        "displayedObservations" : 3,
+        "environment" : "",
+        "object" : "dfEvapRates",
+        "preview" : 0,
+        "totalObservations" : 3,
+        "variables" : 5
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
