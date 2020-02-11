@@ -167,9 +167,9 @@ dfReservedFlood <- read_excel(sExcelFile, sheet = "Pools",  range = "C46:E58")
 dfReservedFlood$month_num <- month(as.POSIXlt(dfReservedFlood$Month, format="%Y-%m-%Y"))
 
 # Read in the ISG and DCP cutbacks from Excel
-dfCutbacksElev <- read_excel(sExcelFile, sheet = "Data",  range = "H21:H33") #Elevations
-dfCutbacksVols <- read_excel(sExcelFile, sheet = "Data",  range = "O21:U33") #ISG and DCP for states + MX
-dfCutbacksVolsFed <- read_excel(sExcelFile, sheet = "Data",  range = "Y21:Y33") # Federal cutback
+dfCutbacksElev <- read_excel(sExcelFile, sheet = "Data",  range = "H21:H41") #Elevations
+dfCutbacksVols <- read_excel(sExcelFile, sheet = "Data",  range = "O21:U41") #ISG and DCP for states + MX
+dfCutbacksVolsFed <- read_excel(sExcelFile, sheet = "Data",  range = "Y21:Y41") # Federal cutback
 #Merge into one data frame
 dfCutbacks <- dfCutbacksElev
 dfCutbacks$RowNum <- 0
