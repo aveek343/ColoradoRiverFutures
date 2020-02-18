@@ -110,8 +110,8 @@ MeadInflowToLeeFerryNatural <- function(MeadInflow,GrandCanyonTrib,PowellEvap,Up
 
 
 
-# New function interp2 to return NAs for values outside interpolation range (from https://stackoverflow.com/questions/47295879/using-interp1-in-r)
-interp2 <- function(x, y, xi = x, ...) {
+# New function interpNA to return NAs for values outside interpolation range (from https://stackoverflow.com/questions/47295879/using-interp1-in-r)
+interpNA <- function(x, y, xi = x, ...) {
   yi <- rep(NA, length(xi));
   sel <- which(xi >= range(x)[1] & xi <= range(x)[2]);
   yi[sel] <- interp1(x = x, y = y, xi = xi[sel], ...);
@@ -158,8 +158,8 @@ TimeToReservoirTarget <- function(Sinit, inflow, deliveryVolume, deliveryResStor
     dfTimeResults$Storage[currT] <- Scurr
      
     #Calculate mass balance components in current time step at Scurr
-    release <- interp2(x=deliveryResStorage, y=deliveryVolume,xi = Scurr, method = sMethodRelease) # release is step function defined in the data
-    evap <- eRate*interp2(x=ResVolume, y=ResArea,xi = Scurr) # Evaporation is a linear interpolation off the reservoir bathymetry curve
+    release <- interpNA(x=deliveryResStorage, y=deliveryVolume,xi = Scurr, method = sMethodRelease) # release is step function defined in the data
+    evap <- eRate*interpNA(x=ResVolume, y=ResArea,xi = Scurr) # Evaporation is a linear interpolation off the reservoir bathymetry curve
     #Reservoir storage balance equation. New storage = Current Storage + Inflow - release - evaporation
     Scurr <- Scurr + inflow - release - evap
   
@@ -213,8 +213,8 @@ dfDeliverySchedule <- data.frame(release = c(2,2,5,5), stor = c(0,2,11,tMaxVol))
 dfBath <- data.frame(volume = c(0,3,10,tMaxVol), area = c(1,3,5,6))
 tErate <- 0.5
 
-interp2(x=dfDeliverySchedule$stor, y=dfDeliverySchedule$release, xi = tStartVol, method = "constant") 
-interp2(x=dfBath$volume, y=dfBath$area,xi = tStartVol)
+interpNA(x=dfDeliverySchedule$stor, y=dfDeliverySchedule$release, xi = tStartVol, method = "constant") 
+interpNA(x=dfBath$volume, y=dfBath$area,xi = tStartVol)
 
 #debug(TimeToReservoirTarget)
 lTestReturn <- TimeToReservoirTarget(Sinit = tStartVol, inflow = tInflow, deliveryVolume = dfDeliverySchedule$release, 
@@ -363,7 +363,7 @@ dfReservedFlood$Powell_level <- interp1(xi = dfReservedFlood$Powell_flood_stor*1
 dfPowellEqLevels <- data.frame(Year = c(2008:2026), Elevation = c(3636,3639,3642,3643,3645,3646,3648,3649,3651,3652,3654,3655,3657,3659,3660,3663,3663,3664,3666))
 dfPowellEqLevels$Volume <- vlookup(dfPowellEqLevels$Elevation,dfPowellElevStor,result_column=2,lookup_column = 1)/1000000
 #Need to convert these Powell volumes into equivalent Mead levels for the next step
-dfPowellEqLevels$EqMeadLev <- interp2(xi = dfPowellEqLevels$Volume*1000000,x=dfMeadElevStor$`Live Storage (ac-ft)`,y=dfMeadElevStor$`Elevation (ft)`, method="linear")
+dfPowellEqLevels$EqMeadLev <- interpNA(xi = dfPowellEqLevels$Volume*1000000,x=dfMeadElevStor$`Live Storage (ac-ft)`,y=dfMeadElevStor$`Elevation (ft)`, method="linear")
 
 
 dfMeadValsAdd <- data.frame(Reservoir = "Mead",
@@ -738,7 +738,7 @@ ggsave("Fig4-StorageVsTime-MeadInflow.jpg",width = 12,
        dpi = 300)
 
 #Calculate the final Mead Elevation
-dfTimeResults$Elevation <- interp2(xi = dfTimeResults$Storage,y=dfMeadElevStor$`Elevation (ft)` , x=dfMeadElevStor$`Live Storage (ac-ft)`, method="linear")
+dfTimeResults$Elevation <- interpNA(xi = dfTimeResults$Storage,y=dfMeadElevStor$`Elevation (ft)` , x=dfMeadElevStor$`Live Storage (ac-ft)`, method="linear")
 
 #Get the blue color bar
 pBlues <- brewer.pal(9,"Blues")
@@ -880,11 +880,25 @@ ggsave("Fig6-MeadStorageVsTime-LeeFerryFlow.jpg",width = 12,
 dfInflowStorageSimulations <- data.frame(InitStorage=0, Inflow=0, FinalStorage=0, Status="dummy", Year=0, index=0, Release=0)
 maxIts <- 100
 
+#Initial Storage scenarios (MAF)
+cInitStorageScens <- seq(3,tMaxVol,by=2)*1e6
+#Steady Inflow scenarios (MAF per year)
+cInflowScens <- seq(4,12, by=0.5)*1e6
+#Record the number of scenarios
+nFlowScens <- length(cInflowScens)
+nInitStorScens <- length(cInitStorageScens)
+
+#Define DCP zone polygons
+dfPolyScens <- dfPolyAll
+dfPolyScens$Inflow <- c(cInflowScens[1],cInflowScens[nFlowScens],cInflowScens[nFlowScens],cInflowScens[1],cInflowScens[1],cInflowScens[nFlowScens],cInflowScens[nFlowScens],cInflowScens[1])/1e6
+dfPolyScens$MidInflow <- mean(cInflowScens[1],cInflowScens[nFlowScens])/1e6
+
+
 #Loop over initial storage
-for (tInitStorage in seq(3,tMaxVol,by=2)*1e6) {
+for (tInitStorage in cInitStorageScens) {
 
   #Loop over stead natural inflow values (stress tests)
-  for (tInflow in seq(5,12, by=0.5)*1e6){
+  for (tInflow in cInflowScens){
     
     #tInflow <- 6e6
     #debug(TimeToReservoirTarget)
@@ -929,7 +943,7 @@ dfTimeInflowStorageResultsClean <- dfTimeInflowStorageResults[complete.cases(dfT
 #Now do the plot: X-axis is inflow, y-axis is initial storage, z-labels are time to catastrophy.
 p <- ggplot() +
   #Polygon zones
-  geom_polygon(data = dfPolyAll, aes(x = Inflow, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyAll$DumVal)), show.legend = F) +
+  geom_polygon(data = dfPolyScens, aes(x = Inflow, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyScens$DumVal)), show.legend = F) +
   
 #  geom_polygon(data = dfPolyAll, aes(x = Year, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyAll$DumVal)), show.legend = F) +
   #Inflow traces
@@ -1037,7 +1051,7 @@ for (i in (1:nRows)) {
   
   #Use geom_contour as contour plot
  pPlot <- ggplot() +
-    geom_polygon(data = dfPolyAll, aes(x = Inflow + dfInflowAxes[i,2]/1e6, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyAll$DumVal)), show.legend = F) +
+    geom_polygon(data = dfPolyScens, aes(x = Inflow + dfInflowAxes[i,2]/1e6, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyScens$DumVal)), show.legend = F) +
     
     geom_contour(data=dfTimeInflowStorageResultsClean, aes(x=InflowToUse/1e6,y= InitStorage/1e6, z = ContourValue, color = Status), binwidth=4, size=1.5)   +
     geom_text_contour(data=dfTimeInflowStorageResultsClean, aes(x=InflowToUse/1e6,y= InitStorage/1e6, z = ContourValue), binwidth=4, size=6, check_overlap = TRUE, min.size = 5) +
@@ -1081,5 +1095,48 @@ for (i in (1:nRows)) {
   # End Loop over axes
 }
 
+### Lee Ferry Flow plot with paleo events marked
+
+# Read in the paleo flow data from Excel
+sPaleoFile <- 'DroughtDurations.xlsx'
+dfPaleoEvents <- read_excel(sPaleoFile, sheet = "Sheet1",  range = "A4:E18")
+
+#Order the data frame by Flow
+dfPaleoEvents <- dfPaleoEvents[order(dfPaleoEvents$`Average Flow (maf)`),]
+dfPaleoEvents$YearRange <- paste(dfPaleoEvents$`Start Year`," to ",dfPaleoEvents$`End Year`)
+
+dfDurations <- dfTimeInflowStorageResultsClean %>% filter(Status == "Bottom")
+cLeeFlows <- unique(sort(dfDurations$InflowToUse))
+cDurs <- unique(sort(dfDurations$index))
+nDurs <- length(cDurs)
+nLeeFlows <- length(cLeeFlows)
 
 
+#Create a matrix of the storages for a particular Flow and Duration
+mStors <- matrix(0, nrow = nLeeFlows, ncol = nDurs)
+
+#Assign the right values to mgridStors
+for (i in (1:nLeeFlows)) {
+  iFlow <- cFlows[i]
+  for (j in (1:nDurs)) {
+    iDur <- cDurs[j]
+    dfTempRecord <- dfDurations %>% filter(InflowToUse == iFlow, index == iDur)
+    mStors[i,j] <- ifelse(nrow(dfTempRecord)==0,tMaxVol*1e6,dfTempRecord$InitStorage)
+  }
+}
+
+#Loop through the Paleo events and interpolate a storage for the specified flow and duration
+dfPaleoEvents$InitStor <- interp2(x=cDurs, y=cLeeFlows, Z = mStors/1e6, xp=dfPaleoEvents$`Length (years)`, yp=dfPaleoEvents$`Average Flow (maf)`*1e6, "linear")
+
+## Draw the plot
+# Rebring the code and integrate points/labels earlier
+# Only use start year
+# For events with start-storage larger than 25 MAF or greater than 12.3 MAF per year inflow, plot at 
+#     top as second y axis
+library(ggrepel)
+## Add another layer to the plot which is the points
+pPlot <- pPlot +
+          geom_point(data=dfPaleoEvents, aes(x=`Average Flow (maf)`, y=InitStor), size=5) +
+          geom_text_repel(data=dfPaleoEvents, aes(x=`Average Flow (maf)`, y=InitStor, label=dfPaleoEvents$YearRange), size = 5)
+
+print(pPlot)

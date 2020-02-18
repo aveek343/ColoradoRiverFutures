@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1581999623603.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "9AEEC5E2",
+    "lastKnownWriteTime" : 2,
+    "last_content_update" : 1581999623603,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "6A7F967F",
+        "caption" : "dfPaleoEvents",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfPaleoEvents&cache_key=6A7F967F",
+        "displayedObservations" : 14,
+        "environment" : "",
+        "object" : "dfPaleoEvents",
+        "preview" : 0,
+        "totalObservations" : 14,
+        "variables" : 5
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
