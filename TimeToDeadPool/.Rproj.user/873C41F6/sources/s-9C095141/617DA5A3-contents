@@ -253,13 +253,19 @@ dfReservedFlood$month_num <- month(as.POSIXlt(dfReservedFlood$Month, format="%Y-
 
 # Read in Paria, Little Colorado, and Virgin River Flows from CRSS DMI to convert Inflow to Mead to Natural Flow at Lee Ferry
 sExcelFileGrandCanyonFlow <- 'HistoricalNaturalFlow.xlsx'
-dfGCFlows <- read_excel(sExcelFileGrandCanyonFlow, sheet = 'Total Natural Flow',  range = "V1:Y1324")
+#dfGCFlows <- read_excel(sExcelFileGrandCanyonFlow, sheet = 'Total Natural Flow',  range = "V1:Y1324")
+dfGCFlows <- read_excel(sExcelFileGrandCanyonFlow, sheet = 'Total Natural Flow',  range = "V1:Z1324")
 dfGCDates <- read_excel(sExcelFileGrandCanyonFlow, sheet = 'Total Natural Flow',  range = "A1:A1324")
 
 #Merge and combine into one Data frame
 dfGCFlows$Date <- dfGCDates$`Natural Flow And Salt Calc model Object.Slot`
+#Just tribs
+#dfGCFlows$Total <- dfGCFlows$`CoRivPowellToVirgin:PariaGains.LocalInflow` + dfGCFlows$`CoRivPowellToVirgin:LittleCoR.LocalInflow` + 
+#                          dfGCFlows$VirginRiver.Inflow
+
+#Tribs + Gains above Hoover
 dfGCFlows$Total <- dfGCFlows$`CoRivPowellToVirgin:PariaGains.LocalInflow` + dfGCFlows$`CoRivPowellToVirgin:LittleCoR.LocalInflow` + 
-                          dfGCFlows$VirginRiver.Inflow
+  dfGCFlows$VirginRiver.Inflow + dfGCFlows$`CoRivVirginToMead:GainsAboveHoover.LocalInflow` - dfGCFlows$`CoRivPowellToVirgin:GainsAboveGC.LocalInflow`
 
 #Convert to Water Year and sum by water year
 dfGCFlows$Year <- year(dfGCFlows$Date)
@@ -611,7 +617,7 @@ dfTimeResults <- dfInflowSimulations
 ePowellRate <- dfEvapRates %>% filter(Reservoir %in% c("Powell"), Source %in% c("Reclamation")) %>% select(Rate.ft.per.year)
 ePowellArea <- interp1(xi = 9e6,x=dfPowellElevStor$`Live Storage (ac-ft)` , y=dfPowellElevStor$`Area (acres)`, method="linear")
 
-GrandCanyonTribFlows <- 300000
+GrandCanyonTribFlows <- vMedGCFlow
 
 vMeadInflowToLeeNaturalCorrection <- -GrandCanyonTribFlows + 4e6 + ePowellRate*ePowellArea
 dfTimeResults$LeeFerryNaturalFlow <- dfTimeResults$Inflow + as.numeric(vMeadInflowToLeeNaturalCorrection )
