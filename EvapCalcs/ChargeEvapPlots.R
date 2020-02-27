@@ -167,9 +167,9 @@ dfReservedFlood <- read_excel(sExcelFile, sheet = "Pools",  range = "C46:E58")
 dfReservedFlood$month_num <- month(as.POSIXlt(dfReservedFlood$Month, format="%Y-%m-%Y"))
 
 # Read in the ISG and DCP cutbacks from Excel
-dfCutbacksElev <- read_excel(sExcelFile, sheet = "Data",  range = "H21:H33") #Elevations
-dfCutbacksVols <- read_excel(sExcelFile, sheet = "Data",  range = "O21:U33") #ISG and DCP for states + MX
-dfCutbacksVolsFed <- read_excel(sExcelFile, sheet = "Data",  range = "Y21:Y33") # Federal cutback
+dfCutbacksElev <- read_excel(sExcelFile, sheet = "Data",  range = "H21:H41") #Elevations
+dfCutbacksVols <- read_excel(sExcelFile, sheet = "Data",  range = "O21:U41") #ISG and DCP for states + MX
+dfCutbacksVolsFed <- read_excel(sExcelFile, sheet = "Data",  range = "Y21:Y41") # Federal cutback
 #Merge into one data frame
 dfCutbacks <- dfCutbacksElev
 dfCutbacks$RowNum <- 0
@@ -236,6 +236,8 @@ dfPowellEvap$EvapVolMaxLo <- dfPowellEvap$`Area (acres)`*EvapRatesToUsePowell[2]
 dfPowellEvap$EvapVolMin <- dfPowellEvap$`Live Storage (ac-ft)` - interp2(xi = dfPowellEvap$`Elevation (ft)` - EvapRatesToUsePowell[1], x=dfPowellElevStor$`Elevation (ft)` , y=dfPowellElevStor$`Live Storage (ac-ft)`, method="linear")
 #Calculate percent erro off MaxUp and MaxLo values
 dfPowellEvap$RangeError <- (dfPowellEvap$EvapVolMaxUp - dfPowellEvap$EvapVolMaxLo)/dfPowellEvap$EvapVolMaxLo
+#Calculate half the difference
+dfPowellEvap$Range <- (dfPowellEvap$EvapVolMaxUp - dfPowellEvap$EvapVolMaxLo)/1e6/2
 
 strEvapRangePowell <- paste0("(",EvapRatesToUsePowell[2]," - ", EvapRatesToUsePowell[3], " feet/year)")
 strEvapRangeMead <-  paste0("(",EvapRatesToUse[2]," - ", EvapRatesToUse[3], " feet/year)")

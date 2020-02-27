@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1582139893334.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "43A1D77",
+    "lastKnownWriteTime" : 8017342125385807465,
+    "last_content_update" : 1582139893334,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "545D57FD",
+        "caption" : "dfTimeInflowStorageResultsNoNA",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfTimeInflowStorageResultsNoNA&cache_key=545D57FD",
+        "displayedObservations" : "7269",
+        "environment" : "",
+        "object" : "dfTimeInflowStorageResultsNoNA",
+        "preview" : "0",
+        "totalObservations" : "7269",
+        "variables" : "9"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
