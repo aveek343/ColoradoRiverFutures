@@ -877,13 +877,13 @@ ggsave("Fig6-MeadStorageVsTime-LeeFerryFlow.jpg",width = 12,
 # Make a plot of inflow (x-axis), initial reservoir storage (y-axis), and time to bads
 ###############################################################################################
 #Create the master dataframe of results
-dfInflowStorageSimulations <- data.frame(InitStorage=0, Inflow=0, FinalStorage=0, Status="dummy", Year=0, index=0, Release=0)
+dfInflowStorageSimulations <- data.frame(InitStorage=0, Inflow=0, FinalStorage=0, Status="dummy", Year=0, index=0, Storage=0, Release=0)
 maxIts <- 100
 
 #Initial Storage scenarios (MAF)
 cInitStorageScens <- seq(3,tMaxVol,by=2)*1e6
 #Steady Inflow scenarios (MAF per year)
-cInflowScens <- seq(4,12, by=0.5)*1e6
+cInflowScens <- seq(4,14, by=0.5)*1e6
 #Record the number of scenarios
 nFlowScens <- length(cInflowScens)
 nInitStorScens <- length(cInitStorageScens)
@@ -911,11 +911,15 @@ for (tInitStorage in cInitStorageScens) {
                                   sMinTarget = dfMeadAllPools$value[9], sMaxTarget = tMaxVol*1e6, startYear = startYear )
 
     #Append results to dataframe   
-    dfTempRecord <- data.frame(InitStorage=tInitStorage, Inflow=tInflow, FinalStorage=tRes$volume, Status=tRes$status, Year=startYear+tRes$periods, index=tRes$periods, Release=tRes$dfTimeResults$Release)
+    #dfTempRecord <- data.frame(InitStorage=tInitStorage, Inflow=tInflow, FinalStorage=tRes$volume, Status=tRes$status, Year=startYear+tRes$periods, index=tRes$periods, Release=tRes$dfTimeResults$Release)
+    nIts <- nrow(tRes$dfTimeResults)
+    dfTempRecord <- data.frame(InitStorage=rep(tInitStorage,nIts), Inflow=tRes$dfTimeResults$Inflow, FinalStorage=rep(tRes$volume,nIts), Status=rep(tRes$status,nIts), Year=tRes$dfTimeResults$Year, index=tRes$dfTimeResults$index, Storage= tRes$dfTimeResults$Storage, Release=tRes$dfTimeResults$Release)
     dfInflowStorageSimulations <- rbind(dfInflowStorageSimulations, dfTempRecord)
     
   }
 }
+
+
 #Remove the first dummy row of zeros
 dfInflowStorageSimulations <- dfInflowStorageSimulations[2:nrow(dfInflowStorageSimulations),]
 
@@ -928,17 +932,28 @@ xLabelPos <- 0.7*max(dfTimeInflowStorageResults$Inflow/1e6) # in inflow units
 #Flow scale
 xFlowScale <- seq(min(dfTimeInflowStorageResults$Inflow),max(dfTimeInflowStorageResults$Inflow),1e6)/1e6
 
-#Calculate label as either years to bottom target, years to full, or steady-state storage in maf
-dfTimeInflowStorageResults$Label <- ifelse(dfTimeInflowStorageResults$Status == "Middle",
-                                           paste(round(dfTimeInflowStorageResults$FinalStorage/1e6, digits=1),'maf'),
-                                           paste(dfTimeInflowStorageResults$index,"yr"))
+#Remove rows with NA
+dfTimeInflowStorageResultsNoNA <- dfTimeInflowStorageResults %>% drop_na()
+#Keep the record with the largest index (time to) in each Initial Storage, Inflow, Status group
+dfTimeInflowStorageResultsClean <- dfTimeInflowStorageResultsNoNA %>% 
+                                      group_by(InitStorage, Inflow, FinalStorage, Status) %>%
+                                      summarize(index = max(index))
 
-#Calculate contour value as either years to bottom target, years to full, or steady-state storage in maf
-dfTimeInflowStorageResults$ContourValue <- ifelse(dfTimeInflowStorageResults$Status == "Middle",
-                                           round(dfTimeInflowStorageResults$FinalStorage/1e6, digits=1),
-                                           dfTimeInflowStorageResults$index)
+
 #Remove duplicate rows and rows with NA
-dfTimeInflowStorageResultsClean <- dfTimeInflowStorageResults[complete.cases(dfTimeInflowStorageResults),] %>% distinct(InitStorage, Inflow, .keep_all=TRUE)
+#dfTimeInflowStorageResultsClean <- dfTimeInflowStorageResults[complete.cases(dfTimeInflowStorageResults),] %>% distinct(InitStorage, Inflow, .keep_all=TRUE)
+
+#Calculate label as either years to bottom target, years to full, or steady-state storage in maf
+dfTimeInflowStorageResultsClean$Label <- ifelse(dfTimeInflowStorageResultsClean$Status == "Middle",
+                                           paste(round(dfTimeInflowStorageResultsClean$FinalStorage/1e6, digits=1),'maf'),
+                                           paste(dfTimeInflowStorageResultsClean$index,"yr"))
+
+#Calculate contour value (primarily Duration) as either years to bottom target, years to full, or steady-state storage in maf
+dfTimeInflowStorageResultsClean$ContourValue <- ifelse(dfTimeInflowStorageResultsClean$Status == "Middle",
+                                                  round(dfTimeInflowStorageResultsClean$FinalStorage/1e6, digits=1),
+                                                  dfTimeInflowStorageResultsClean$index)
+
+
 
 #Now do the plot: X-axis is inflow, y-axis is initial storage, z-labels are time to catastrophy.
 p <- ggplot() +
@@ -1026,11 +1041,11 @@ for (i in (1:nRows)) {
   print(i)
 }
 
-pPlot <- seq(1,nRows,by=1)
+
 
 # Loop over the inflow axes
 for (i in (1:nRows)) {
-  #i <- 3
+  i <- 1
   #Print out the iteration
   print(i)
   
@@ -1057,6 +1072,8 @@ for (i in (1:nRows)) {
     geom_text_contour(data=dfTimeInflowStorageResultsClean, aes(x=InflowToUse/1e6,y= InitStorage/1e6, z = ContourValue), binwidth=4, size=6, check_overlap = TRUE, min.size = 5) +
     geom_label(data=dfStatusPositions, aes(x = MidInflow/1e6 , y = tMaxVol+2, label = Label, fontface="bold", color=Status), size=6, angle = 0) + 
     
+    #Overplot the points
+    #geom_point(data=dfTimeInflowStorageResultsClean,aes(x = InflowToUse/1e6, y = InitStorage/1e6), size=4) +
     #Label the polygons
     #  geom_label(data=dfPolyLabel, aes(x = xLabelPos, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
     
@@ -1094,6 +1111,164 @@ for (i in (1:nRows)) {
  
   # End Loop over axes
 }
+
+
+### Plot Inflow-Duration results as contour plot
+# y-axis: Duration (years)
+# x-axis: either Steady Mead Inflow, Powell Release, or Lee Ferry Natural flow
+# Contours: Initial starting reservoir storage
+
+
+pPlotStor <- seq(1,nRows,by=1)
+
+# Loop over the inflow axes
+#for (i in (1:nRows)) {
+  i <- 1
+  #Print out the iteration
+  print(i)
+  
+  #Calculate the inflow values to use
+  dfTimeInflowStorageResultsClean$InflowToUse <- dfTimeInflowStorageResultsClean$Inflow + 
+    dfInflowAxes[i,2]
+  
+  #Remove steady storage values and duplicates
+  #dfResults <- dfTimeInflowStorageResultsClean %>% filter(Status == "Bottom" | Status == "Top") %>% group_by(Status,InflowToUse,ContourValue) %>%
+  #          distinct(Status, InflowToUse, ContourValue, .keep_all = TRUE)
+  
+  #Keep middle status, remove duplicates
+  # dfResults <- dfTimeInflowStorageResultsClean %>% filter(Status == "Middle") %>% group_by(Status,InflowToUse,ContourValue) %>%
+  #          distinct(Status, InflowToUse, ContourValue, .keep_all = TRUE)
+
+  #Remove the duplicates
+  dfResults <- dfTimeInflowStorageResultsClean %>% group_by(Status,InflowToUse,ContourValue) %>%
+    distinct(Status, InflowToUse, ContourValue, .keep_all = TRUE)
+  
+  #Filter out the duplicate records
+  dfResults <- dfResults %>% distinct(ContourValue, InflowToUse, .keep_all=TRUE)
+  
+  #Rename the ContourValue the columns so it is easier to work with
+  #Calculate contour value (primarily Duration) as either years to bottom target, years to full, or steady-state storage in maf
+  dfResults$Duration <- dfResults$ContourValue
+  #Calculate a new z column that is start storage for the Bottom and Top status. And is the end storage
+  # for the Middle status
+  dfResults$zStorage <- ifelse(dfResults$Status == "Middle",round(dfResults$FinalStorage, digits=1),
+                                                         dfResults$InitStorage)/1e6
+  
+  
+  #Calculate a convienent flow scale to use
+  min(dfResults$InflowToUse/1e6,1e6)
+  xFlowScaleCurr <- seq(floor(min(dfResults$InflowToUse/1e6)),ceiling(max(dfResults$InflowToUse/1e6)))
+  MaxDuration <- max(dfResults$Duration)
+  
+  #Calculate positions for the group labels
+  dfStatusPositionsStor <- dfResults %>% group_by(Status) %>% summarize(MinInflow = min(InflowToUse), MaxInflow = max(InflowToUse))
+  #Add textlabels
+  cStatusLabels <- c("To Dead Pool\n(Start storage [MCM])","Steady Storage\n(MCM)", "To Fill\n(Start storage [MCM])")
+  dfStatusPositionsStor$Label <- cStatusLabels
+  dfStatusPositionsStor$MidInflow <- (dfStatusPositionsStor$MinInflow + dfStatusPositionsStor$MaxInflow)/2
+  
+  #Redo the middle data as vertical lines from low to high
+  dfResultsMid <- dfResults %>% filter(Status == "Middle")
+  dfResultsMid <- dfResultsMid %>% group_by(InflowToUse) %>% summarize(zStorage = mean(zStorage))
+  dfResultsMid$Duration <- 1
+  
+  dfResultsMidAdd <- data.frame(InflowToUse = rep(dfResultsMid$InflowToUse,3), 
+                                Duration = c(rep(MaxDuration/2,nrow(dfResultsMid)),rep(MaxDuration,nrow(dfResultsMid)),rep(NA,nrow(dfResultsMid))), 
+                                zStorage = rep(dfResultsMid$zStorage,3))
+  #Bind the dataframes together
+  dfResultsMid <- rbind(dfResultsMid,dfResultsMidAdd)
+  dfResultsMid$Status <- "Middle"
+  
+  #Exclude the middle category
+  dfResults <- dfResults %>% filter(Status != "Middle") 
+  
+  #Use geom_contour as contour plot
+  # Plot strategy: dfResults is for Bottom and Top
+  #                dfResultsMid is for Middle
+  pPlotStor <- ggplot() +
+    #geom_polygon(data = dfPolyScens, aes(x = Inflow + dfInflowAxes[i,2]/1e6, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyScens$DumVal)), show.legend = F) +
+    
+    #Plot the Bottom/Top groups as contours
+    geom_contour(data=dfResults, aes(x=InflowToUse/1e6, y= Duration, z = zStorage, color = Status), binwidth=4, size=1.5)   +
+    geom_text_contour(data=dfResults, aes(x=InflowToUse/1e6, y= Duration, z = zStorage), binwidth=4, size=6, check_overlap = TRUE, min.size = 5) +
+    geom_label(data=dfStatusPositionsStor, aes(x = MidInflow/1e6 , y = MaxDuration+2, label = Label, fontface="bold", color=Status), size=6, angle = 0) + 
+ 
+    #Plot the Middle groups as contours
+    #geom_contour(data=dfResultsMid, aes(x=InflowToUse/1e6, y= Duration, z = zStorage, color = Status), binwidth=4, size=1.5)   +
+    #geom_text_contour(data=dfResultsMid, aes(x=InflowToUse/1e6, y= Duration, z = zStorage), binwidth=4, size=6, check_overlap = TRUE, min.size = 5) +
+    geom_line(data=dfResultsMid, aes(x=InflowToUse/1e6,y=Duration, color = Status), size=1.5) +
+    geom_label(data = dfResultsMid %>% filter(Duration==MaxDuration/2), aes(x=InflowToUse/1e6, y=Duration, label = sprintf("%.1f",zStorage), size=5),angle=0) +
+  
+       
+    #Overplot the data points
+    #geom_point(data=dfResultsMid, aes(x=InflowToUse/1e6, y= Duration), color="Black", size = 5) +
+    #Label the polygons
+    #  geom_label(data=dfPolyLabel, aes(x = xLabelPos, y = MidMead/1e6, label = Label, fontface="bold"), size=6, angle = 0) + 
+    
+    #Y-axis: Active storage on left, Elevation with labels on right 
+    scale_y_continuous(breaks = seq(0,MaxDuration,by=5), labels = seq(0,MaxDuration,by=5), limits = c(0, MaxDuration+3)) + 
+                      # sec.axis = sec_axis(~. +0, name = "Mead Level (feet)", breaks = dfMeadPoolsPlot$stor_maf, labels = dfMeadPoolsPlot$labelSecY)) +
+    scale_x_continuous(breaks = xFlowScaleCurr, labels = xFlowScaleCurr) +
+    #limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+    #scale_y_continuous(breaks = seq(0,50,by=10), labels = seq(0,50,by=10), limits = c(0, 50)) +
+    
+    #Color scale for polygons - increasing red as go to lower levels
+    #scale_fill_manual(breaks = c(2,1),values = c(palReds[3],palReds[2]),labels = dfPolyLabel$Label ) + 
+    scale_fill_manual(guide="Guide2", breaks = c("Top","Middle","Bottom"),values = c("Blue","Green","Red"),labels = c("Fill (years)","Steady volume (maf)","To 1,025 (years)" )) + 
+    scale_color_manual(breaks = c("Top","Middle","Bottom"), values=c("red","purple","blue"), labels=c("To Fill (years)","Steady volume (maf)","To 1,025 (years)")) +
+    
+    
+    theme_bw() +
+    
+    scale_size(guide="none") +
+    
+    labs(x=paste(dfInflowAxes[i,1]," (MAF per year)"), y="Duration (years)") +
+    #theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+    #      legend.position = c(0.8,0.7))
+    theme(text = element_text(size=20), 
+          legend.position = "none")
+  
+  print(pPlotStor)
+  
+  sFigNum <- paste("Fig",i+6,"-FlowDurationStorage",sep="")
+  sFigName <- paste(sFigNum,dfInflowAxes[i,3],sep="")
+  
+  ggsave(paste(sFigName,".jpg"),width = 12,
+         height = 7.5, units = "in",
+         dpi = 300)
+  
+  # End Loop over axes
+#}
+
+### Dummy contour plot for vertical data
+  dfDummyVertical <- data.frame(InflowToUse = rep(seq(8.5,10.5,by=0.5),3), 
+                                Duration = c(rep(1,5),rep(10,5),rep(25,5)), 
+                                zStorage = rep(seq(6,14,by=2),3))
+  relBreaks <- seq(6,14,by=2)
+  
+  ggplot(dfDummyVertical, aes(x=InflowToUse, y= Duration, z = zStorage)) +
+    #geom_polygon(data = dfPolyScens, aes(x = Inflow + dfInflowAxes[i,2]/1e6, y = MeadVol/1e6, group = id, fill = as.factor(dfPolyScens$DumVal)), show.legend = F) +
+    
+    geom_contour2( colour = "black", size=0.75, breaks = relBreaks)   +
+    #Label contour lines (This is not working very well)
+    #metR::geom_text_contour(aes(label=..level..),size=6, check_overlap = TRUE, parse = TRUE) +
+    #geom_dl(aes(label=..level..),method=list("angled.boxes", cex=2), stat="contour", breaks = relBreaks, na.rm = TRUE) +
+    #geom_dl(aes(label=dfDummyVertical$zStorage),method=list("angled.boxes", cex=2), stat="contour", breaks = relBreaks) +
+    
+        #Overplot the data points
+    #geom_point( color="Black", size = 5) +
+    geom_label(data = dfDummyVertical %>% filter(Duration==10), aes(x=InflowToUse, y=Duration, label = zStorage, size=5),angle=0)
+   
+    
+  
+  
+    #geom_contour(data=dfDummyVertical, aes(x=InflowToUse, y= Duration, z = zStorage), binwidth=2, size=1.5)   +
+    #geom_text_contour(data=dfDummyVertical, aes(x=InflowToUse, y= Duration, z = zStorage), binwidth=2, size=6, check_overlap = TRUE, min.size = 5) +
+
+    #Overplot the data points
+    #geom_point(data=dfDummyVertical, aes(x=InflowToUse, y= Duration), color="Black", size = 5)
+    
+
 
 ### Lee Ferry Flow plot with paleo events marked
 
