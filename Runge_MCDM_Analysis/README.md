@@ -9,8 +9,11 @@ Visualizations include:
 
 
 Dr. David Rosenberg
+
 david.rosenberg@usu.edu
+
 March 12, 2020
+
 Utah State University
 
 ## Recommended Citation
