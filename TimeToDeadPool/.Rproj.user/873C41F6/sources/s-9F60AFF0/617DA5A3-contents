@@ -535,6 +535,9 @@ for (iFlow in cInflows){
 dfDeliveriesInflows$AvailableWater <- dfDeliveriesInflows$MeadActiveVolume + dfDeliveriesInflows$Inflow
 dfDeliveriesInflows$Inflow=as.factor(dfDeliveriesInflows$Inflow)
 
+#Get the blue color bar
+pBlues <- brewer.pal(9,"Blues")
+
 #Specify te order for traces on the plot
 cBreakOrder <- c("1:1 Line to Dead Pool","1:1 Line-Protect 1,025",cInflows)
 cColorVals <- c(pBlues[2],"Grey","Black",pBlues[3:9])
@@ -739,9 +742,6 @@ ggsave("Fig4-StorageVsTime-MeadInflow.jpg",width = 12,
 
 #Calculate the final Mead Elevation
 dfTimeResults$Elevation <- interpNA(xi = dfTimeResults$Storage,y=dfMeadElevStor$`Elevation (ft)` , x=dfMeadElevStor$`Live Storage (ac-ft)`, method="linear")
-
-#Get the blue color bar
-pBlues <- brewer.pal(9,"Blues")
 
 #PLOT 2: Storage versus time with different Steady Mead inflow traces. Different DCP zones. And a vertical line showing the end of the Interim Guidelines. Line Labels Show the reservoir release
 ggplot() +
