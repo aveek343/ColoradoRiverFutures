@@ -1,7 +1,7 @@
 # Colorado River Futures - Code Projects
 # Time to Dead Pool
 
-How long does it take Lake Mead to reach dead pool given a steady year-to-year inflow and starting storage volume?
+How long does it take Lake Mead to reach dead pool given a steady inflow and starting storage volume? Steady inflow means the same inflow volume year-after-year.
 
 Dr. David Rosenberg
 
@@ -15,11 +15,11 @@ Utah State University
 David E. Rosenberg (2019). "Time to Dead Pool". Utah State University. Logan, Utah. https://github.com/dzeke/ColoradoRiverFutures.
 
 ## Description
-**TimeToDeadPool** is a steady deterministic analysis of the number of years for Lake Mead to hit one of the following conditions given a starting storage volume, steady inflow, and steady demand that includes 2019 Drought Contingency Plan reductions when Mead is
-at specified storage levels:
-1. Dead pool (or other target elevation specified by the user)
-1. To Fill  (or other high elevation target specified by the user)
-1. An intermediate steady storage volumme (does not change over time)
+**TimeToDeadPool** is a steady deterministic analysis of the number of years for Lake Mead to hit one of the following conditions given a starting storage volume, steady inflow, and steady demand that includes 2019 Drought Contingency Plan reductions when Mead falls
+to specified storage levels. Steady inflow means the same inflow volume year after year after year. The stop conditions are to:
+1. Dead pool (or other low target elevation specified by the user)
+1. Fill  (or other high elevation target specified by the user)
+1. Reach an intermediate steady storage volumme (i.e., reservoir neither fills nor goes to dead pool. The volume equilabrates over time)
 
 This analysis is a decision scaling bottom-up multi-dimensional sensitivity analysis ala Brown et al. (2019) where the uncertain dimensions are steady inflow and starting storage and described by scenarios.
 The analysis tests combinations of steady inflow and starting storage scenarios.
