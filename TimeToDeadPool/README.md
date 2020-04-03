@@ -37,3 +37,7 @@ The analysis can also be used to explore the conseequences of alternative manage
 ## Run Code
 To run the code, download and install R and RStudio. Open .R Project file, highlight all the code, and run. 
 NOTE: Code does not currently work
+
+## To Do
+1. Get code to work again
+1. Compare results to reconstructed paleo flow records
