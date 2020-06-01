@@ -8,7 +8,7 @@ if the Upper Basin cut back it's future releases some (so the 10-year sum droppe
 to change the customary practice to release 8.25 MAF per year (rather than 82.5 MAF per decande).
 
 ## Recommended Citation
-David E. Rosenberg (2019). "Colorado River Futures - Code Projects". Utah State University. Logan, Utah. https://github.com/dzeke/ColoradoRiverFutures.
+David E. Rosenberg (2020). "Colorado River Futures - Code Projects: Powell 10 Year". Utah State University. Logan, Utah. https://github.com/dzeke/ColoradoRiverFutures.
 
 ## Explanation of Contents
 
