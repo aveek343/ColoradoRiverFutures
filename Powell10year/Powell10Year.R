@@ -168,8 +168,8 @@ ggplot() +
   
   # 10-year 75 MAF target
   geom_line(data=dfPowellHistAnnual,aes(x=DateAsValue,y=TenYearTarget, color="75 MAF Target"), size=2) +
-  # 10-year 82.5 MAF target
-  geom_line(data=dfPowellHistAnnual,aes(x=DateAsValue,y=TenYearTarget82, color="82.5 MAF Target"), size=2) +
+  # 10-year 82.3 MAF target. 82.3 = 75 to Lower Basin + 7.25 to Mexico - 0.2 Help from Paria River
+  geom_line(data=dfPowellHistAnnual,aes(x=DateAsValue,y=TenYearTarget82, color="82.3 MAF Target"), size=2) +
   
   theme_bw() +
   #coord_fixed() +
@@ -178,7 +178,7 @@ ggplot() +
 #theme(text = element_text(size=20), legend.text=element_text(size=16)
 
 
-#### 10-Year Difference between Release and 82.5 target
+#### 10-Year Difference between Release and 82.3 target
 
 ggplot() +
   #  10-year sum
