@@ -1,6 +1,6 @@
 # Lake Powell 10-Year Releases
 
-This short R script aggregates monthly Lake Powell release data reported by the Bureau of Reclamation (https://www.usbr.gov/rsvrWater/HistoricalApp.html)
+This R script aggregates monthly Lake Powell release data reported by the Bureau of Reclamation (https://www.usbr.gov/rsvrWater/HistoricalApp.html)
 And reports 10-year running sums of releases in acre-feet. These volumes are compared to the 75 MAF (to Lower Basin) and 82.5 MAF 
 (to Lower Basin and Mexcico) delivery requirements specified in the 1922 Colorado River Compact. Summamtion is by water year. A difference between the
 10-year release and 10-year 82.5 MAF requirement is calculated. This difference is potentially bankable in Lake Powell in future years
@@ -17,5 +17,5 @@ David E. Rosenberg (2019). "Colorado River Futures - Code Projects". Utah State 
 1. **Powell10Year.R** - R script that reads in raw release data, calculates 10-year sums and differences, dumps results to csv and shows plots of 
          (a) The 10-year values over time at a monthly time spacing, (b) 10-year values over time at an annual time spacing, and
 		 (c) the difference between the 10-year sum and 82.5 MCM requirement
-1. **PowellDataUSBRMay2020** - Lake Powell release data downloaded from USBR for May 2020 on back
+1. **PowellDataUSBRMay2020.csv** - Lake Powell release data downloaded from USBR for May 2020 on back
 To run any code, download and install R and RStudio. Within the subfolder, open the .R file, highlight all the code, and run. 
