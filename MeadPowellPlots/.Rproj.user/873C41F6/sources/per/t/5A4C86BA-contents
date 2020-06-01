@@ -530,6 +530,9 @@ cPowellRows <- c(2,4,7,9,12,13,14,15,16)
 cPowellVarNames <- dfPowellAllPools$variable[cPowellRows]
 dfPowellPoolsPlot <- dfPowellAllPools %>% filter(variable %in% cPowellVarNames) %>% arrange(level)
 dfPowellPoolsPlot$name <- as.character(dfPowellPoolsPlot$variable)
+#Save the data to csv
+write.csv(dfPowellAllPools,"dfPowellAllPools.csv")
+
 #Rename a few of the variable labels
 dfPowellPoolsPlot[1,c("name")] <- "Dead Pool"
 dfPowellPoolsPlot[2,c("name")] <- "Minimum Power (CRSS)"
