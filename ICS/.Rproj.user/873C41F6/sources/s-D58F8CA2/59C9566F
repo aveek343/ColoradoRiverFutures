@@ -12,14 +12,14 @@
     "path" : null,
     "project_path" : null,
     "properties" : {
-        "cacheKey" : "12BB3C39",
+        "cacheKey" : "F544C149",
         "caption" : "dfICSBalance",
-        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfICSBalance&cache_key=12BB3C39",
-        "displayedObservations" : "4",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfICSBalance&cache_key=F544C149",
+        "displayedObservations" : "9",
         "environment" : "",
         "object" : "dfICSBalance",
         "preview" : "0",
-        "totalObservations" : "4",
+        "totalObservations" : "9",
         "variables" : "5"
     },
     "relative_order" : 2,

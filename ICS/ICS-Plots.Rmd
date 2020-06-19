@@ -1,3 +1,22 @@
+---
+title: "Intentionally Created Surplus Account Balances"
+author: "David E. Rosenberg"
+date: "June 19, 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+
+This is an R Markdown document. This stacked bar chart compares account balances by state and year for the Intentionally Created Surplus program for Lake Mead to the max balance allowed by the 2007 Interim Guidelines. 
+
+Data from USBR annual accounting reports: https://www.usbr.gov/lc/region/g4000/wtracct.html
+
+```{r ICSplot, echo=FALSE, warning=FALSE, message=FALSE}
+
 # ICS-Plots.r
 #
 # Make stacked bar graph of state Intentionally Created Surplus holdings by year
@@ -65,10 +84,10 @@ if (!require(plyr)) {
   library(plyr) 
 }
 
-if (!require(ggplot)) { 
-  install.packages("ggPlot", repo="http://cran.r-project.org", dependencies = T)
-  library(ggplot) 
-}
+#if (!require(ggplot)) { 
+#  install.packages("ggplot", repo="http://cran.r-project.org")
+#  library(ggplot) 
+#}
 
 if (!require(stringr)) { 
   install.packages("stringr", repo="http://cran.r-project.org")
@@ -119,3 +138,4 @@ ggplot() +
   
 
 
+```

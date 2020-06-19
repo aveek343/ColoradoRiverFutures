@@ -1,0 +1,253 @@
+---
+title: "COVID-19 Contraction Rates by County, State, and US"
+author: "David E. Rosenberg"
+date: "June 16, 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. COVID-19 contraction rates are shown for select US Counties and States and Nationally. Rates are shown by day (red bar graph), and cummulative (black line). Cumulative deaths (blue line) are also shown.
+
+## Reading the Plots
+Cumulative plots provide an a quick visual way to see how COVID-19 is spreading.
+
+* Linear slope = one infected person infects approximately one new person over the time they are contageous (on average)
+* Upward sloping = one infected person infects more than one new person over the time they are contageous (on average). This leads to exponential growth
+* Downward sloping = one infected person infects less than one new person over time they are contageous (on average). If the downward trend continues and new infections fall to zero per day and persist at zero per day, the epidemic will die out.
+ 
+## Also reported
+* Double time: # of days to go from 50% of current infections to current number of infections (100%). Valid for future projections only if past growth was linear and linear growth continues
+* Infection rate: number of people newly infected per time, rate calculated from most recent 50% of people infected (again, only valid for future projections if past trend was linear and future trend is linear)
+* Time to 50% infection: number of years for 50% of the overall population to become infected. Assumes past infection rate was linear and that linear rate contintues.
+
+## Credits
+Code to scrape data from the New York Times Github site written by David Tarboton
+
+Code to plot as cumulative plots written by David Rosenberg
+
+
+
+```{r covidRead, echo=FALSE, warning=FALSE, message=FALSE}
+### Read COVID DATA FROM SOURCES
+# Data from https://github.com/nytimes/covid-19-data
+# County Population data from https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/totals/
+
+#install.packages("tidyverse")
+library(tidyverse)   # Provides %>% pipe operator among other things.  Also seems needed for str_which()
+
+# URL 
+URL="https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
+URLUS="https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
+URLStates="https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv"
+
+countyfile=paste("us-counties-",format(Sys.time(), "%Y-%m-%d"),".csv",sep="")
+statefile=paste("us-states-",format(Sys.time(), "%Y-%m-%d"),".csv",sep="")
+usfile=paste("us-",format(Sys.time(), "%Y-%m-%d"),".csv",sep="")
+
+download.file(URL,countyfile)
+download.file(URLStates,statefile)
+download.file(URLUS,usfile)
+
+covid.df=read.csv(countyfile)
+covidstate.df=read.csv(statefile)
+covidus.df=read.csv(usfile)
+population=read.csv("co-est2019-alldata.csv")
+
+
+utah.df=covidstate.df[which(covidstate.df$state=="Utah"),]
+cache.df=covid.df[which(covid.df$county=="Cache"& covid.df$state=="Utah"),]
+
+# Scrape last days from websites
+#install.packages("rvest")
+library(rvest)
+## Update Utah
+
+## likely to break below if website changes
+utdash=read_html("https://coronavirus-dashboard.utah.gov/")
+tt=html_nodes(utdash,"span")
+tt1=html_attr(tt,"class")=="value-output"
+# Cases html_text(html_nodes(utdash,"span")[tt1][1]) 
+# Deaths html_text(html_nodes(utdash,"span")[tt1][4])
+UtahTodaysCases=as.numeric(html_text(html_nodes(utdash,"span")[tt1][1]))
+UtahTodaysDeaths=as.numeric(html_text(html_nodes(utdash,"span")[tt1][4]))
+
+monthnames=c("January","February","March","April","May","June", "July", "August", "September", "October", "November", "December")
+
+tt2=html_text(html_nodes(utdash,"p")[1])  # Updated date
+mid=str_which(tt2,monthnames)
+st=str_locate(tt2,monthnames[mid])[,1]
+ed=str_locate(tt2,monthnames[mid])[,2]
+UtahCurrentDate=as.Date(substr(tt2,st,ed+9),format = "%B %d, %Y")
+
+# Cache Valley
+# The below will fail if the structure of the website changes
+brhd=read_html("https://brhd.org/coronavirus")
+#tt=html_nodes(brhd,"meta")
+#tt1=which(html_attr(tt,"property")=="article:modified_time")
+#dupdate=as.Date(html_attr(tt[tt1],"content"))
+tt=html_nodes(brhd,"div")
+tt1=ifelse(is.na(html_attr(tt,"class")),FALSE,(html_attr(tt,"class")=="et_pb_text_inner"))
+tt2=html_text(html_nodes(brhd,"div")[tt1][4])   # the Updated when field
+
+mid=str_which(tt2,monthnames)
+st=str_locate(tt2,monthnames[mid])[,1]
+ed=str_locate(tt2,monthnames[mid])[,2]
+CacheCurrentDate=as.Date(substr(tt2,st,ed+9),format = "%B %d, %Y")
+brhd.df=read.csv("brhd.csv")
+dfdate=as.Date(tail(brhd.df,1)$date)
+if(CacheCurrentDate > dfdate)
+{
+  tt=html_nodes(brhd,"div")
+  tt1=ifelse(is.na(html_attr(tt,"class")),FALSE,(html_attr(tt,"class")=="et_pb_text_inner"))
+  node1=which(html_text(html_nodes(brhd,"div")[tt1])=="County")[1]  
+  Cases=as.numeric(html_text(html_nodes(brhd,"div")[tt1])[node1+c(6:8)])   # Cache valley cases
+  Deaths=as.numeric(html_text(html_nodes(brhd,"div")[tt1])[node1+c(21:23)])
+  Hosp=as.numeric(html_text(html_nodes(brhd,"div")[tt1])[node1+c(11:13)])
+  Recov=as.numeric(html_text(html_nodes(brhd,"div")[tt1])[node1+c(16:18)])
+  County=html_text(html_nodes(brhd,"div")[tt1])[node1+c(1:3)]
+  df=data.frame(date=as.character(CacheCurrentDate),county=County,cases=Cases,hosp=Hosp,deaths=Deaths)
+  brhd.df=rbind(brhd.df,df)
+  write.csv(brhd.df,file="brhd.csv",row.names=FALSE)
+}
+
+```
+
+
+```{r covidPlot, echo=FALSE, warning=FALSE, message=FALSE}
+### PLOT COVID DATA
+# Data from https://github.com/nytimes/covid-19-data
+# County Population data from https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/totals/
+
+# This assumes data frames have been read using "UpdateCovidData.R"
+
+# Provided by David Tarboton on 6/8/2020
+# Modified by David Rosenberg 6/16/2020
+
+#install.packages("tidyverse")
+library(tidyverse)   # Provides %>% pipe operator among other things
+library (stringr) #To compare strings
+library (lubridate) #To get day of month
+
+
+
+#DER function to plot in ggPlot
+CumDayDeath.r=function(dfData,title,pop,SecAxisType=NULL, TargetPop=0.5){
+  #dfData = data frame with date, cases, deaths columns in cumulative counts
+  #title = plot title
+  #pop = total population for region
+  #SecAxisType = "Per10000" | "Percent" : how to scale secondary axis
+  #TargetPop = fraction of total population. Used in calculating print statistics,
+  #    of Years to reach Target Population
+  
+  #Calcualte cases per day
+  dfData$daycases <- c(NA,diff(dfData$cases)) 
+  #Determine the First days of months to put on x-axis ticks
+  dfData$Day <- day(dfData$date)
+  dfDateLabels <- dfData %>% filter(Day==1)
+  dfDateLabels$Text <-format(as.Date(dfDateLabels$date),format="%B %d")
+  
+  #Calculate growth metrics
+  #calculate days to double
+  halfcases = dfData$cases[nrow(dfData)]/2
+  dfData$HalfCase <- ifelse(dfData$cases >= halfcases,1,0)
+  doubletime = round(sum(dfData$HalfCase)+0.5)
+  growthrate = round(halfcases/doubletime)
+  yearsTo = round((pop*TargetPop - halfcases)/growthrate/365,digits=1)
+  txtDouble = paste("Double time:",doubletime,"days")
+  txtRate  = paste("Infection rate:",round(halfcases/doubletime*30.5),"persons/month")
+  #txtTimeTo = paste("Time to",percent(TargetPop),"infection:",yearsTo,"years")
+  txtTimeTo = paste("Time to",round(TargetPop*100),"% infection:",yearsTo,"years")
+  
+  #Create a dataframe for the text labels
+  dfLabels <- data.frame(date=rep(dfDateLabels$date[1],3), NumPers = c(halfcases, 0.75*halfcases, 0.5*halfcases), txt = c(txtDouble, txtRate,txtTimeTo))
+  
+  
+  pPlot <- ggplot(dfData,aes(x=date, group=1)) +
+    #Cumulative
+    geom_line(aes(y=cases,color="Cumulative Infections"),size=2) +
+    #Single Day
+    geom_bar(aes(y=daycases,color="1 Day Infections", fill="red"),stat="identity") +
+    #Deaths
+    geom_line(aes(y=deaths,color="Cumulative Deaths"),size=1.5) +
+    #Add rate labels
+    geom_label(data=dfLabels, aes(x=date,y=NumPers, label= txt, hjust="left"), size=6)
+    
+    if ((!is.null(SecAxisType)) && str_detect(str_to_lower(SecAxisType),str_to_lower("Per10000")))
+      {
+      # 2nd y axis per 10000
+      pPlot <- pPlot + scale_y_continuous(
+          sec.axis=sec_axis(~ . * 10000/pop, name="Per 10000 population"))
+      } else {
+      # 2nd y axis fraction of total population
+      pPlot <- pPlot + scale_y_continuous(
+          sec.axis=sec_axis(~ . * 1/pop*100, name="Percent of Population"))
+      }
+    
+    pPlot <- pPlot + scale_x_discrete(breaks = dfDateLabels$date, labels=dfDateLabels$Text) + 
+    ggtitle(title)+
+    theme(plot.title = element_text(hjust = 0.5),legend.position = c(0.2,0.85),legend.title = element_blank(), text = element_text(size = 14))+
+    xlab("")+ylab("Number of People")+
+    scale_color_manual(breaks = c("Cumulative Infections","1 Day Infections", "Cumulative Deaths"), values=c("red", "blue","black")) +
+    guides(fill = FALSE)
+    
+    print(pPlot)
+
+}
+
+
+
+dfCountiesToPlot <- data.frame(county = c("Cache", "Box Elder", "Weber", "Summit", "Contra Costa","Tompkins"),
+                               state = c("Utah","Utah","Utah","Utah", "California", "New York"),
+                               ExtraTitleText = c(" and https://brhd.org/coronavirus","","","","","") )
+
+sPrimaryDataSource <- "Data from https://github.com/nytimes/covid-19-data"
+
+#Loop over counties
+for (i in 1:nrow(dfCountiesToPlot)) {
+  
+  cCounty <- as.character(dfCountiesToPlot$county[i])
+  cState <-  as.character(dfCountiesToPlot$state[i])
+  #Grab the covid data
+  CurrCounty.df=covid.df[which(covid.df$county==cCounty& covid.df$state==cState),]
+  #Grab the population data
+  sCountyName <- paste(cCounty,"County")
+  CountyPop=population$POPESTIMATE2019[which(population$STNAME==cState & population$CTYNAME == sCountyName)]
+
+  #Compose the title
+  sTitle <- paste0(sCountyName,", ",cState,"\n",sPrimaryDataSource,as.character(dfCountiesToPlot$ExtraTitleText[i]))
+  # Plot Cummulative Contractions Per Day
+  CumDayDeath.r(CurrCounty.df,sTitle,CountyPop,"Percent")
+
+  }
+  
+#Plot the States
+for (lState in unique(dfCountiesToPlot$state)) {
+     
+  #Turn level to character
+  cState <- as.character(lState)
+  
+  #print(cState)
+  #Get state population
+  statepop=population$POPESTIMATE2019[which(population$STNAME==cState & population$COUNTY == 0)]
+  #Get state COVID data
+  state.df=covidstate.df[which(covidstate.df$state==cState),]
+  #Compose the title
+  sTitle <- paste0(cState,"\n",sPrimaryDataSource,as.character(dfCountiesToPlot$ExtraTitleText[i]))
+  #print(sTitle)
+  # Plot Cummulative Contractions Per Day
+  CumDayDeath.r(state.df,sTitle,statepop,"Percent")
+    
+}
+
+
+# Plot National
+# tidyverse way
+uspop=population %>% filter(COUNTY==0) %>% select(POPESTIMATE2019) %>% sum
+CumDayDeath.r(covidus.df,"United States",uspop)
+
+```
