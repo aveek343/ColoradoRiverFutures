@@ -578,3 +578,56 @@ ggplot() +
         #aspect.ratio = 1, axis.text = element_text(colour = 1, size = 12),
         legend.background = element_rect(linetype = 1, size = 1, colour = 1))
 
+### Plot 9. Mead and Powell evaporated volume as a percent of total storage. Compare to ICS loss assess rates
+
+#create a data frame for 4 traces - Mead, Powell, 5% Loss 1st Year, 3% Loss Subsequent years
+dfEvapTraceLabels <- data.frame(ActiveStorage = c(5.5,4.5,20,22.5), evaprate = c(8.5, 3.5,2.1,5.6), 
+                                label = c(paste("Mead",strEvapRangeMead), paste("Powell",strEvapRangePowell),"ICS Assess\nSubsequent Years (3%)", "ICS Assess-Year 1 (5%)"),
+                                color = c("red","blue","black","black"))
+
+ggplot() +
+  #Central lines of evap
+  #Mead
+  geom_line(data=dfMeadEvap,aes(x=`Live Storage (ac-ft)`/1000000,y=EvapVolMax/`Total Storage (ac-ft)`*100, color = "Mead"), size=1) +
+  #Powell
+  geom_line(data=dfPowellEvap,aes(x=`Live Storage (ac-ft)`/1000000,y=EvapVolMax/`Total Storage (ac-ft)`*100, color = "Powell"), size=1) +
+  # ICS Initial Assessment
+  geom_line(data=dfPowellEvap,aes(x=`Live Storage (ac-ft)`/1000000,y=5, color = "ICS-1st Year"), size=1) +
+  # ICS Subsequent Assessment
+  geom_line(data=dfPowellEvap,aes(x=`Live Storage (ac-ft)`/1000000,y=3, color = "ICS-Subsequent Years"), size=1) +
+  
+  
+  #Error bars on evap
+  #Powell first because wider
+  geom_errorbar(data=dfPowellEvap, aes(x=`Live Storage (ac-ft)`/1000000,ymin=EvapVolMaxLo/`Total Storage (ac-ft)`*100, ymax=EvapVolMaxUp/`Total Storage (ac-ft)`*100), width=.2,
+                position=position_dodge(0.2), color="blue", show.legend = FALSE) +
+  #Mead
+  geom_errorbar(data=dfMeadEvap, aes(x=`Live Storage (ac-ft)`/1000000,ymin=EvapVolMaxLo/`Total Storage (ac-ft)`*100, ymax=EvapVolMaxUp/`Total Storage (ac-ft)`*100), width=.2,
+                position=position_dodge(0.2), color="red", show.legend = FALSE) +
+  
+  geom_text(data = dfEvapTraceLabels, aes(x=ActiveStorage,y=evaprate,label=label, color=color), size = 8) + 
+  
+  scale_color_manual(name="Guide1",values = c("black","blue","black", "black","black","black", "red"), breaks=c("Mead", "Powell","ICS-Year 1 (5%)", "ICS\nSubsequent Years (3%)")) +
+  #scale_linetype_manual(name="Guide1",values=c("Mead"="twodash","Powell"="solid"), breaks=c("Mead","Powell"), labels= c(paste("Mead",strEvapRangeMead), paste("Powell",strEvapRangePowell))) +
+  
+  #scale_color_manual(values = c("Blue", "Black", "Red", "Grey"), breaks=c("DCP", "ISG", "Mead", "Powell"), labels= c("Drought Contingency Plan (2019) Cutbacks", "Interim Shortage Guidelines (2008) Cutbacks", paste("Mead",strEvapRangMead))) +
+  #scale_linetype_manual("Variabler",values=c("Evaporation"="twodash","DCP"="solid","ISG"="longdash"),labels= c("Drought Contingency Plan (2019) Cutbacks", "Interim Shortage Guidelines (2008) Cutbacks", paste("Evaporation",strEvapRangeComb))) +
+  scale_x_continuous(breaks = c(0,5,10,15,20,25),labels=c(0,5,10,15, 20,25), limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+                     sec.axis = sec_axis(~. +0, name = "", breaks = dfPoolsUse$stor_maf, labels = dfPoolsUse$LabelBr)) +
+  
+  guides(fill = guide_legend(keywidth = 1, keyheight = 1),
+         #linetype=guide_legend(keywidth = 3, keyheight = 1),
+         color = FALSE) +
+         #colour=guide_legend(keywidth = 3, keyheight = 1)) +
+  
+  #xlim(1,27.5) +
+  
+  theme_bw() +
+  #coord_fixed() +
+  labs(x="Active Storage (MAF)", y="Evaporated Volume per Year\n(% of Total Storage)") +
+  theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.3,0.7),
+        #Box around legend
+        panel.border = element_rect(colour = "black", fill=NA),
+        #aspect.ratio = 1, axis.text = element_text(colour = 1, size = 12),
+        legend.background = element_rect(linetype = 1, size = 1, colour = 1))
+
