@@ -631,3 +631,93 @@ ggplot() +
         #aspect.ratio = 1, axis.text = element_text(colour = 1, size = 12),
         legend.background = element_rect(linetype = 1, size = 1, colour = 1))
 
+### Figure 10. What is the storage partition between Mead and Powell that minimizes evaporation at each total storage
+
+#Initialize a new data frame
+dfPartitionResults <- data.frame(TotalStorage = c(0),PercentInMead = c(0), MeadEvap = c(0), PowellEvap = c(0), CombEvap = c(0))
+
+#Loop over total storages and partition percents
+for (TotStorage in seq(0,55,by=2.5)){
+  for (PerMead in seq(0,1,by=0.1)) {
+    #Only move forward on physcially feasible combinations:
+    #   1 - Current Mead Storage less than Mead Capacity
+    #   2 - Current Powell Storage less than Powell Capacity
+    
+    nMeadVol <- PerMead*TotStorage 
+    nPowellVol <- TotStorage - nMeadVol
+    
+    if ((nMeadVol <= dfMaxStor$Volume[2]) & (nPowellVol <= dfMaxStor$Volume[1])) {
+      
+      #Interpolate Mead evaporation volume
+      nMeadEvap <- interp2(xi = nMeadVol*1e6,x=dfCombineEvap$`Live Storage (ac-ft)` , y=dfCombineEvap$EvapVolMax, method="linear")
+      #Interpolate Pead evaporation volume
+      nPowellEvap <- interp2(xi = nPowellVol*1e6,x=dfCombineEvap$`Live Storage (ac-ft)` , y=dfCombineEvap$EvapVolMaxPowell, method="linear")
+ 
+      #Create new record
+      dfThisRow <- data.frame(TotalStorage = TotStorage, PercentInMead = PerMead, MeadEvap = nMeadEvap, PowellEvap = nPowellEvap, CombEvap = nMeadEvap+nPowellEvap)
+      #Add new to existing
+      dfPartitionResults <- rbind(dfPartitionResults, dfThisRow)
+      
+      }
+    
+    }
+}
+
+#Remove the first record
+dfPartitionResults <- dfPartitionResults[2:nrow(dfPartitionResults),]
+
+detach(package:plyr)
+
+dfEvapDiff <- dfPartitionResults %>% filter(TotalStorage > 0, TotalStorage==round(TotalStorage)) %>% group_by(TotalStorage) %>% summarize(MinEvap = min(CombEvap, na.rm=TRUE), MaxEvap=max(CombEvap, na.rm=TRUE))
+dfEvapDiff$Diff <- dfEvapDiff$MaxEvap - dfEvapDiff$MinEvap
+
+dfEvapDiffMelt <- melt(dfEvapDiff[, c("TotalStorage","MinEvap","MaxEvap")], id = c("TotalStorage")) %>% arrange(TotalStorage)
+
+cPercentStorage <- cCombScale/(sum(dfMaxStor$Volume))
+
+palBlues <- brewer.pal(9, "Blues")
+
+#Plot #11. Total evaporated volume as a function combined active storage and storage partition between Mead and Powell (fraction of storage in Mead)
+ggplot() +
+  #Error bar
+  geom_errorbar(data=dfCombineEvap, aes(x=CombLiveStor/1000000,ymin=EvapVolMaxLoComb/1000000, ymax=EvapVolMaxUpComb/1000000), width=.2,
+               position=position_dodge(0.2)) +
+  geom_line(data=dfPartitionResults,aes(x=TotalStorage,y=CombEvap/1000000, color = PercentInMead*100, group=PercentInMead), size=2) +
+  
+  #Show the difference between the two
+  geom_text(data=dfEvapDiff, aes(x=TotalStorage,y=MaxEvap/1e6+0.13,label=round(Diff/1e6,2)), size=5, color="red") +
+  
+  #verticle line to show difference
+  geom_line(data=dfEvapDiffMelt, aes(x=TotalStorage,y=value/1e6, group=TotalStorage), size=1.5, color="red") +
+  
+  
+  #Label the top and bottom lines
+  geom_text(data=dfPartitionResults,aes(x=20,y=0.75,label="All in Mead"),size=6, color=palBlues[9]) +
+  geom_text(data=dfPartitionResults,aes(x=15,y=1.1,label="All in Powell"),size=6, color=palBlues[9]) +
+  geom_text(data=dfPartitionResults,aes(x=32.5,y=1.85,label="Difference between\nAll in Mead and All in Powell\n(MAF per year)"),size=5, color="red") +
+  geom_text(data=dfPartitionResults,aes(x=42.5,y=1.3,label="Error on\nEvapored Volume"),size=5, color="black") +
+  
+  #geom_step(data=dfCutbacks,aes(x=2*MeadActiveVolume/1000000,y=Total2007ISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +
+  #geom_step(data=dfCutbacks,aes(x=2*MeadActiveVolume/1000000,y=TotalDCP/1000000, color = "DCP", linetype="DCP"), size=2, direction="vh") +
+  
+  #scale_color_manual(name="Guide1",values = c("Blue", "Black", "Red"),breaks=c("DCP", "ISG", "Evaporation"), labels= c("Drought Contingency Plan (2019) Cutbacks", "Interim Shortage Guidelines (2008) Cutbacks", paste("Evaporation",strEvapRangeComb))) +
+  #scale_linetype_manual(name="Guide1",values=c("Evaporation"="twodash","DCP"="solid","ISG"="longdash"), breaks=c("DCP", "ISG", "Evaporation"), labels= c("Drought Contingency Plan (2019) Cutbacks", "Interim Shortage Guidelines (2008) Cutbacks", paste("Evaporation",strEvapRangeComb))) +
+  
+  #Continuous color scale by Mead Percent
+  scale_color_continuous(name="Storage in Mead (%)", low=palBlues[1],high=palBlues[9], na.value="White", aesthetics="color") +
+  #scale_color_continuous(low=palBlues[1],high=palBlues[9], na.value="White", aesthetics="color") +
+  
+  scale_x_continuous(breaks = cCombScale,labels=cCombScale, limits = c(0,2*as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
+                     sec.axis = sec_axis(~ . /sum(dfMaxStor$Volume), breaks = seq(0,1,by=0.2), name="Fraction of Total Active Storage" )) +
+  
+  guides(color=guide_legend(keywidth = 3, keyheight = 1)) +
+  
+  theme_bw() +
+  #coord_fixed() +
+  labs(x="Mead + Powell Active Storage (MAF)", y="Evaporated Volume (MAF per year)") +
+  theme(text = element_text(size=20), legend.text=element_text(size=18), legend.position = c(0.15,0.8))
+
+ggsave("EvapStoragePartition.png", width=9, height = 6.5, units="in")
+
+
+
