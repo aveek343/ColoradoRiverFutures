@@ -22,6 +22,8 @@
 
 rm(list = ls())  #Clear history
 
+# Use Rtools40 on Windows to install executable to update dependent libraries - https://cran.r-project.org/bin/windows/Rtools/
+
 # Load required libraies
 
 if (!require(tidyverse)) { 
@@ -29,8 +31,9 @@ if (!require(tidyverse)) {
   library(tidyverse) 
 }
 
+
 if (!require(readxl)) { 
-  install.packages("readxl", repos="http://cran.r-project.org") 
+  install.packages("readxl") 
   library(readxl) 
 }
 
@@ -41,7 +44,7 @@ if (!require(RColorBrewer)) {
 }
 
 if (!require(dplyr)) { 
-  install.packages("dplyr",repos="http://cran.r-project.org") 
+  install.packages("dplyr") 
   library(dplyr) # 
 }
 
@@ -61,7 +64,7 @@ if (!require(pracma)) {
 }
 
 if (!require(lubridate)) { 
-  install.packages("lubridate", repos="http://cran.r-project.org") 
+  install.packages("lubridate", type="source") 
   library(lubridate) 
 }
 
@@ -71,19 +74,34 @@ if (!require(directlabels)) {
 }
 
 if (!require(plyr)) { 
-  install.packages("plyr", repo="http://cran.r-project.org")
+  install.packages("plyr", type="source")
   library(plyr) 
 }
 
-if (!require(ggplot)) { 
-  install.packages("ggplot", repo="http://cran.r-project.org")
-  library(ggplot) 
+if (!require(ggplot2)) { 
+  install.packages("ggplot2", type="source")
+  library(ggplot2) 
 }
 
 if (!require(stringr)) { 
   install.packages("stringr", repo="http://cran.r-project.org")
   library(stringr) 
 }
+
+
+library(readxl)
+library(plyr) 
+library(tidyverse)
+library(ggplot2) 
+library(stringr) 
+library(RColorBrewer)
+library(dplyr)
+library(directlabels) 
+library(lubridate) 
+library(pracma) 
+library(reshape2) 
+library(expss)
+library(ggplot2)
 
 
 
@@ -605,7 +623,7 @@ ggplot() +
   geom_errorbar(data=dfMeadEvap, aes(x=`Live Storage (ac-ft)`/1000000,ymin=EvapVolMaxLo/`Total Storage (ac-ft)`*100, ymax=EvapVolMaxUp/`Total Storage (ac-ft)`*100), width=.2,
                 position=position_dodge(0.2), color="red", show.legend = FALSE) +
   
-  geom_text(data = dfEvapTraceLabels, aes(x=ActiveStorage,y=evaprate,label=label, color=color), size = 8) + 
+  geom_text(data = dfEvapTraceLabels, aes(x=ActiveStorage,y=evaprate,label=label, color=color), size = 6) + 
   
   scale_color_manual(name="Guide1",values = c("black","blue","black", "black","black","black", "red"), breaks=c("Mead", "Powell","ICS-Year 1 (5%)", "ICS\nSubsequent Years (3%)")) +
   #scale_linetype_manual(name="Guide1",values=c("Mead"="twodash","Powell"="solid"), breaks=c("Mead","Powell"), labels= c(paste("Mead",strEvapRangeMead), paste("Powell",strEvapRangePowell))) +
@@ -613,7 +631,8 @@ ggplot() +
   #scale_color_manual(values = c("Blue", "Black", "Red", "Grey"), breaks=c("DCP", "ISG", "Mead", "Powell"), labels= c("Drought Contingency Plan (2019) Cutbacks", "Interim Shortage Guidelines (2008) Cutbacks", paste("Mead",strEvapRangMead))) +
   #scale_linetype_manual("Variabler",values=c("Evaporation"="twodash","DCP"="solid","ISG"="longdash"),labels= c("Drought Contingency Plan (2019) Cutbacks", "Interim Shortage Guidelines (2008) Cutbacks", paste("Evaporation",strEvapRangeComb))) +
   scale_x_continuous(breaks = c(0,5,10,15,20,25),labels=c(0,5,10,15, 20,25), limits = c(0,as.numeric(dfMaxStor %>% filter(Reservoir %in% c("Mead")) %>% select(Volume))),
-                     sec.axis = sec_axis(~. +0, name = "", breaks = dfPoolsUse$stor_maf, labels = dfPoolsUse$LabelBr)) +
+          #           sec.axis = sec_axis(~. +0, name = "", breaks = dfPoolsUse$stor_maf, labels = dfPoolsUse$LabelBr)) +
+                     sec.axis = sec_axis(~ . /sum(dfMaxStor$Volume[2]), breaks = seq(0,1,by=0.2), name="Fraction of Total Mead Active Storage" )) +
   
   guides(fill = guide_legend(keywidth = 1, keyheight = 1),
          #linetype=guide_legend(keywidth = 3, keyheight = 1),
@@ -625,11 +644,13 @@ ggplot() +
   theme_bw() +
   #coord_fixed() +
   labs(x="Active Storage (MAF)", y="Evaporated Volume per Year\n(% of Total Storage)") +
-  theme(text = element_text(size=20),  legend.title = element_blank(), legend.text=element_text(size=18), legend.position = c(0.3,0.7),
+  theme(text = element_text(size=18),  legend.title = element_blank(), legend.text=element_text(size=16), legend.position = c(0.3,0.7),
         #Box around legend
         panel.border = element_rect(colour = "black", fill=NA),
         #aspect.ratio = 1, axis.text = element_text(colour = 1, size = 12),
         legend.background = element_rect(linetype = 1, size = 1, colour = 1))
+
+ggsave("EvapAndICSLossRate.png", width=9, height = 6.5, units="in")
 
 ### Figure 10. What is the storage partition between Mead and Powell that minimizes evaporation at each total storage
 
@@ -666,10 +687,19 @@ for (TotStorage in seq(0,55,by=2.5)){
 #Remove the first record
 dfPartitionResults <- dfPartitionResults[2:nrow(dfPartitionResults),]
 
+#Add a nice label to show in legend for percent in Mead column
+dfPartitionResults$PercentInMeadLabel <- ifelse(dfPartitionResults$PercentInMead == 0,"0 - All in Powell",
+                                                ifelse(dfPartitionResults$PercentInMead == 0.5, "50 - Equalization",
+                                                       ifelse(dfPartitionResults$PercentInMead == 1, "100 - All in Mead", dfPartitionResults$PercentInMead*100)))
+
 detach(package:plyr)
 
 dfEvapDiff <- dfPartitionResults %>% filter(TotalStorage > 0, TotalStorage==round(TotalStorage)) %>% group_by(TotalStorage) %>% summarize(MinEvap = min(CombEvap, na.rm=TRUE), MaxEvap=max(CombEvap, na.rm=TRUE))
 dfEvapDiff$Diff <- dfEvapDiff$MaxEvap - dfEvapDiff$MinEvap
+
+# Calculate the outer envelop or evaporation errors for each combined active storage
+dfEvapDiff$OuterEvapError <- interp1(x=dfCombineEvap$CombLiveStor/1e6, y=dfCombineEvap$EvapVolMaxUpComb, xi = dfEvapDiff$TotalStorage)
+dfEvapDiff$MidEvap <- interp1(x=dfCombineEvap$CombLiveStor/1e6, y=dfCombineEvap$EvapVolMaxComb, xi = dfEvapDiff$TotalStorage)
 
 dfEvapDiffMelt <- melt(dfEvapDiff[, c("TotalStorage","MinEvap","MaxEvap")], id = c("TotalStorage")) %>% arrange(TotalStorage)
 
@@ -683,9 +713,11 @@ ggplot() +
   geom_errorbar(data=dfCombineEvap, aes(x=CombLiveStor/1000000,ymin=EvapVolMaxLoComb/1000000, ymax=EvapVolMaxUpComb/1000000), width=.2,
                position=position_dodge(0.2)) +
   geom_line(data=dfPartitionResults,aes(x=TotalStorage,y=CombEvap/1000000, color = PercentInMead*100, group=PercentInMead), size=2) +
+  #geom_line(data=dfPartitionResults,aes(x=TotalStorage,y=CombEvap/1000000, color = PercentInMeadLabel, group=PercentInMeadLabel), size=2) +
+  
   
   #Show the difference between the two
-  geom_text(data=dfEvapDiff, aes(x=TotalStorage,y=MaxEvap/1e6+0.13,label=round(Diff/1e6,2)), size=5, color="red") +
+  geom_text(data=dfEvapDiff, aes(x=TotalStorage,y=(OuterEvapError)/1e6 + 0.07,label=round(Diff/1e6,2)), size=5, color="red") +
   
   #verticle line to show difference
   geom_line(data=dfEvapDiffMelt, aes(x=TotalStorage,y=value/1e6, group=TotalStorage), size=1.5, color="red") +
@@ -694,7 +726,7 @@ ggplot() +
   #Label the top and bottom lines
   geom_text(data=dfPartitionResults,aes(x=20,y=0.75,label="All in Mead"),size=6, color=palBlues[9]) +
   geom_text(data=dfPartitionResults,aes(x=15,y=1.1,label="All in Powell"),size=6, color=palBlues[9]) +
-  geom_text(data=dfPartitionResults,aes(x=32.5,y=1.85,label="Difference between\nAll in Mead and All in Powell\n(MAF per year)"),size=5, color="red") +
+  geom_text(data=dfPartitionResults,aes(x=32.5,y=2.0,label="Difference in evaporated\nvolume between\nAll in Mead and All in Powell\n(MAF per year)"),size=5, color="red") +
   geom_text(data=dfPartitionResults,aes(x=42.5,y=1.3,label="Error on\nEvapored Volume"),size=5, color="black") +
   
   #geom_step(data=dfCutbacks,aes(x=2*MeadActiveVolume/1000000,y=Total2007ISG/1000000, color = "ISG", linetype="ISG"), size=2, direction="vh") +

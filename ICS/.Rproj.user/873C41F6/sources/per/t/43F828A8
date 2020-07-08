@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1592949335813.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "43F828A8",
+    "lastKnownWriteTime" : 2482448084909518882,
+    "last_content_update" : 1592949335813,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "9670365C",
+        "caption" : "dfICSDepositMelt",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfICSDepositMelt&cache_key=9670365C",
+        "displayedObservations" : 27,
+        "environment" : "",
+        "object" : "dfICSDepositMelt",
+        "preview" : 0,
+        "totalObservations" : 27,
+        "variables" : 3
+    },
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1593046928220.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "697F0F78",
+    "lastKnownWriteTime" : 8017342125385807465,
+    "last_content_update" : 1593046928220,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "890BF899",
+        "caption" : "dfTempAtDepth",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfTempAtDepth&cache_key=890BF899",
+        "displayedObservations" : "1",
+        "environment" : "",
+        "object" : "dfTempAtDepth",
+        "preview" : "0",
+        "totalObservations" : "1",
+        "variables" : "5"
+    },
+    "relative_order" : 10,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
