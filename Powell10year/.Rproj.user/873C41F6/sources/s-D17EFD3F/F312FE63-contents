@@ -5,7 +5,7 @@ date: "July 7, 2020"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -15,7 +15,7 @@ This is an R Markdown document. This document reads monthly USBR data on Lake Po
 
 
 
-```{r PowellAnnualDecade, echo=FALSE, warning=FALSE, message=FALSE}
+```{r PowellAnnualDecade, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 # Powell10Year.r
 #
@@ -176,30 +176,30 @@ write.csv(dfPowellByDecade,"DecadePowellRelease.csv" )
 
 ```
 
-## 10-Year Powell Release in relation to Compact Article IIId Requirements
+# 10-Year Powell Release in relation to Compact Article IIId Requirements
 
 
 ```{r 10YearRelease, echo=FALSE, warning=FALSE, message=FALSE}
 
 library(ggplot2)
 
-ggplot2() +
-  #Powell release - monthly
-  geom_line(data=dfPowellHist,aes(x=DateAsValue,y=Total.Release..cfs.*nCFStoAFMon/1e6, color="Monthly"), size=2) +
-  # Powell release-  annual
-  geom_line(data=dfPowellHist,aes(x=DateAsValue,y=OneYearRelease, color="1-year"), size=2) +
-  
-  #  10-year sum
-  geom_line(data=dfPowellHist,aes(x=DateAsValue,y=TenYearRelease, color="10-year"), size=2) +
-  
-  geom_line(data=dfPowellHist,aes(x=DateAsValue,y=TenYearTarget, color="Target"), size=2) +
-  
- 
-  theme_bw() +
-  #coord_fixed() +
-  labs(x="", y="Powel Release (million acre-feet)") +
-  theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18))
-  #theme(text = element_text(size=20), legend.text=element_text(size=16)
+# ggplot() +
+#   #Powell release - monthly
+#   geom_line(data=dfPowellHist,aes(x=DateAsValue,y=Total.Release..cfs.*nCFStoAFMon/1e6, color="Monthly"), size=2) +
+#   # Powell release-  annual
+#   geom_line(data=dfPowellHist,aes(x=DateAsValue,y=OneYearRelease, color="1-year"), size=2) +
+#   
+#   #  10-year sum
+#   geom_line(data=dfPowellHist,aes(x=DateAsValue,y=TenYearRelease, color="10-year"), size=2) +
+#   
+#   geom_line(data=dfPowellHist,aes(x=DateAsValue,y=TenYearTarget, color="Target"), size=2) +
+#   
+#  
+#   theme_bw() +
+#   #coord_fixed() +
+#   labs(x="", y="Powel Release (million acre-feet)") +
+#   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18))
+#   #theme(text = element_text(size=20), legend.text=element_text(size=16)
 
 
 #### Powell Release over time - annual
@@ -230,7 +230,7 @@ ggplot() +
 
 ```
 
-## 10-Year Difference between Release and 82.3 MAF Target
+# 10-Year Difference between Release and 82.3 MAF Target
 
 
 ```{r TenYearDifference, echo=FALSE, warning=FALSE, message=FALSE}
@@ -272,7 +272,7 @@ ggplot() +
 
 ```
 
-## Powell Annual Inflow and Release
+# Powell Annual Regulated Inflow and Release
 
 ```{r PowellInflowRelease, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -291,7 +291,7 @@ ggplot(dfPowellHistAnnual, aes(DateAsValue)) +
 
 ```
 
-## Histogram of Powell Inflows
+# Histogram of Powell Regulated Inflows
 
 ```{r PowellInflowHistogram, echo=FALSE, warning=FALSE, message=FALSE}
 

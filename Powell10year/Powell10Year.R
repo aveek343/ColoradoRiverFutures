@@ -151,7 +151,7 @@ dfPowellByDecade <- dfPowellHistAnnual %>% arrange(Year, decreasing = TRUE) %>% 
 write.csv(dfPowellByDecade,"DecadePowellRelease.csv" )
 #### Powell Release over time - monthly
 
-ggplot2() +
+ggplot() +
   #Powell release - monthly
   geom_line(data=dfPowellHist,aes(x=DateAsValue,y=Total.Release..cfs.*nCFStoAFMon/1e6, color="Monthly"), size=2) +
   # Powell release-  annual
@@ -168,6 +168,8 @@ ggplot2() +
   labs(x="", y="Powel Release (million acre-feet)") +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18))
   #theme(text = element_text(size=20), legend.text=element_text(size=16)
+
+ggsave("PowellMonthYearDecadeRelease.png", width=9, height = 6.5, units="in")
 
 
 #### Powell Release over time - annual
@@ -193,6 +195,8 @@ ggplot() +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18))
 #theme(text = element_text(size=20), legend.text=element_text(size=16)
 
+ggsave("PowellReleaseTargets.png", width=9, height = 6.5, units="in")
+
 
 #### 10-Year Difference between Release and 82.3 target
 
@@ -205,6 +209,8 @@ ggplot() +
   labs(x="", y="Powell Release above 10-Year Requirement\n(million acre-feet)") +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18))
 #theme(text = element_text(size=20), legend.text=element_text(size=16)
+
+ggsave("PowellReleaseTargetDifference.png", width=9, height = 6.5, units="in")
 
 ### Powell Annual Inflow
 
@@ -238,6 +244,8 @@ ggplot(dfPowellHistAnnual, aes(DateAsValue)) +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
         legend.key = element_blank())
 
+ggsave("PowellInflow.png", width=9, height = 6.5, units="in")
+
   
 #Histogram -- frequency of annual inflow volumes
 ggplot(dfPowellHistAnnual, aes(x=OneYearInflow)) +
@@ -249,3 +257,5 @@ ggplot(dfPowellHistAnnual, aes(x=OneYearInflow)) +
   labs(x="Powell Inflow\n(million acre feet per year)", y="Frequency\n(number of years)") +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
       legend.key = element_blank())
+
+ggsave("PowellInflowHistogram.png", width=9, height = 6.5, units="in")
