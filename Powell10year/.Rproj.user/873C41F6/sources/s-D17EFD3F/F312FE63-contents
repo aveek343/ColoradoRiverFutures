@@ -1,3 +1,22 @@
+---
+title: "Lake Powell Inflows and Releases"
+author: "David E. Rosenberg"
+date: "July 7, 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. This document reads monthly USBR data on Lake Powell Inflows and Releases (https://www.usbr.gov/rsvrWater/HistoricalApp.htm). The code aggregates data to yearly (water year starting Oct 1) and decadal values and then plots 10-year releases incomparison to Compact Article 3d 10-year requirements, inflows, and releaes.
+
+
+
+```{r PowellAnnualDecade, echo=FALSE, warning=FALSE, message=FALSE}
+
 # Powell10Year.r
 #
 # Plot 10-year running total release from Lake Powell
@@ -16,72 +35,75 @@ rm(list = ls())  #Clear history
 
 # Load required libraies
 
-if (!require(tidyverse)) { 
-  install.packages("tidyverse", repos="http://cran.r-project.org") 
-  library(tidyverse) 
-}
-
-if (!require(readxl)) { 
-  install.packages("readxl", repos="http://cran.r-project.org") 
-  library(readxl) 
-}
-
-  
-if (!require(RColorBrewer)) { 
-  install.packages("RColorBrewer",repos="http://cran.r-project.org") 
-  library(RColorBrewer) # 
-}
-
-if (!require(dplyr)) { 
-  install.packages("dplyr",repos="http://cran.r-project.org") 
-  library(dplyr) # 
-}
-
-if (!require(expss)) { 
-  install.packages("expss",repos="http://cran.r-project.org") 
-  library(expss) # 
-}
-
-if (!require(reshape2)) { 
-  install.packages("reshape2", repos="http://cran.r-project.org") 
-  library(reshape2) 
-}
-
-if (!require(pracma)) { 
-  install.packages("pracma", repos="http://cran.r-project.org") 
-  library(pracma) 
-}
-
-if (!require(lubridate)) { 
-  install.packages("lubridate", repos="http://cran.r-project.org") 
-  library(lubridate) 
-}
-
-if (!require(directlabels)) { 
-  install.packages("directlabels", repo="http://cran.r-project.org")
-  library(directlabels) 
-}
-
-
-if (!require(plyr)) { 
+if (!require(plyr)) {
   install.packages("plyr", repo="http://cran.r-project.org")
-  library(plyr) 
+  library(plyr)
 }
 
-if (!require(ggplot2)) { 
+
+if (!require(tidyverse)) {
+  install.packages("tidyverse", repos="http://cran.r-project.org")
+  library(tidyverse)
+}
+
+if (!require(readxl)) {
+  install.packages("readxl", repos="http://cran.r-project.org")
+  library(readxl)
+}
+
+
+if (!require(RColorBrewer)) {
+  install.packages("RColorBrewer",repos="http://cran.r-project.org")
+  library(RColorBrewer) #
+}
+
+
+if (!require(dplyr)) {
+  install.packages("dplyr",repos="http://cran.r-project.org")
+  library(dplyr) #
+}
+
+if (!require(expss)) {
+  install.packages("expss",repos="http://cran.r-project.org")
+  library(expss) #
+}
+
+if (!require(reshape2)) {
+  install.packages("reshape2", repos="http://cran.r-project.org")
+  library(reshape2)
+}
+
+if (!require(pracma)) {
+  install.packages("pracma", repos="http://cran.r-project.org")
+  library(pracma)
+}
+
+if (!require(lubridate)) {
+  install.packages("lubridate", repos="http://cran.r-project.org")
+  library(lubridate)
+}
+
+if (!require(directlabels)) {
+  install.packages("directlabels", repo="http://cran.r-project.org")
+  library(directlabels)
+}
+
+library(ggplot2)
+
+if (!require(ggplot2)) {
   install.packages("colorspace", type = "source")
   library(colorspace)
   install.packages("yaml", type = "source")
   library(yaml)
-  install.packages("ggplot2", type = "source")
-  library(ggplot2) 
+  install.packages("ggplot2", type = "source", dependencies = TRUE)
+  library(ggplot2)
 }
 
 
 
-if (!require(ggrepel)) { 
+if (!require(ggrepel)) {
   devtools::install_github("slowkow/ggrepel")
-  library(ggrepel) 
+  library(ggrepel)
 }
 
 #For rollapply - running sum
@@ -90,7 +112,7 @@ if (!require(zoo)) {
   library(zoo) 
 }
 
-
+installed.packages()
 
 
 sPowellHistoricalFile <- 'PowellDataUSBRMay2020.csv'
@@ -151,6 +173,16 @@ dfPowellByDecade <- dfPowellHistAnnual %>% arrange(Year, decreasing = TRUE) %>% 
 write.csv(dfPowellByDecade,"DecadePowellRelease.csv" )
 #### Powell Release over time - monthly
 
+
+```
+
+## 10-Year Powell Release in relation to Compact Article IIId Requirements
+
+
+```{r 10YearRelease, echo=FALSE, warning=FALSE, message=FALSE}
+
+library(ggplot2)
+
 ggplot2() +
   #Powell release - monthly
   geom_line(data=dfPowellHist,aes(x=DateAsValue,y=Total.Release..cfs.*nCFStoAFMon/1e6, color="Monthly"), size=2) +
@@ -196,6 +228,15 @@ ggplot() +
 
 #### 10-Year Difference between Release and 82.3 target
 
+```
+
+## 10-Year Difference between Release and 82.3 MAF Target
+
+
+```{r TenYearDifference, echo=FALSE, warning=FALSE, message=FALSE}
+
+library(ggplot2)
+
 ggplot() +
   #  10-year sum
   geom_line(data=dfPowellHistAnnual,aes(x=DateAsValue,y=TenYearDiffRnd, color="10-Year Difference"), size=2) +
@@ -228,6 +269,15 @@ ggplot() +
 
 # As mixed bar (inflow) line (release) plot
 
+
+```
+
+## Powell Annual Inflow and Release
+
+```{r PowellInflowRelease, echo=FALSE, warning=FALSE, message=FALSE}
+
+library(ggplot2)
+
 ggplot(dfPowellHistAnnual, aes(DateAsValue)) +
   geom_bar(aes(y=OneYearInflow, fill = "Inflow"), stat="identity") +
   geom_line(aes(y=OneYearRelease, group = 1, color="Release"), size=2) +
@@ -238,7 +288,15 @@ ggplot(dfPowellHistAnnual, aes(DateAsValue)) +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
         legend.key = element_blank())
 
-  
+
+```
+
+## Histogram of Powell Inflows
+
+```{r PowellInflowHistogram, echo=FALSE, warning=FALSE, message=FALSE}
+
+library(ggplot2)
+
 #Histogram -- frequency of annual inflow volumes
 ggplot(dfPowellHistAnnual, aes(x=OneYearInflow)) +
   geom_histogram(color="darkmagenta", fill="magenta", binwidth = 2) +
@@ -249,3 +307,6 @@ ggplot(dfPowellHistAnnual, aes(x=OneYearInflow)) +
   labs(x="Powell Inflow\n(million acre feet per year)", y="Frequency\n(number of years)") +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
       legend.key = element_blank())
+
+
+```
