@@ -3,6 +3,8 @@
 # Creates scenarios of Lake Powell Water Temperature-Depth.
 #  - Use the scenarios to see the variation in water temperatures at a specified depth (such as the Turbine intake) for different water surface levels
 #  - Also the reverse: scenarios of water levels for different temperatures at depth.
+# Also
+#  - explore Powell temperature release data and compare to profile temperatures at Wahweap at 3,490 feet (minimum power pool) 
 #
 # Uses the following data:
 # 1. qryProfiles at Primary Stations.csv - USGS sond data of water temperature profiles going back to 1960s (Vernieu 2015, https://pubs.usgs.gov/ds/471/pdf/ds471.pdf)
@@ -11,6 +13,7 @@
 #
 # 2. LAKEPOWELL06-16-2020T16.32.29.csv - USBR daily data of reservoir level/storage/release (https://www.usbr.gov/rsvrWater/HistoricalApp.html)
 # 3. PowellLevels.xlsx - Definitions of reservoir zones and storage levels (from CRSS/Rosenberg)
+# 4. GCD_release_water_temp.csv - Hourly values of Powell release temperature. Provided by Bryce M.
 #
 # The basis data wrangling strategy is:
 # 1. Load csv files
