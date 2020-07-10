@@ -7,4 +7,6 @@ scenarios of water release temperatures for further modeling. See further docume
 David E. Rosenberg (2020). "Colorado River Futures - Code Projects: Lake Powell Temperature Scenarios". Utah State University. Logan, Utah. https://github.com/dzeke/ColoradoRiverFutures.
 
 ## Directions to Run
-To run any code, download and install R and RStudio. Within the subfolder, open the .R file, highlight all the code, and run. 
+To run any code, download and install R and RStudio. Within the subfolder, open the **LakePowellTempScenarios.R** file, highlight all the code, and run. 
+
+All .png files are figures output by the R script.
