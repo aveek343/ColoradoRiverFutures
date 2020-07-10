@@ -57,6 +57,12 @@ if (!require(reshape)) {
   library(reshape) 
 }
 
+if (!require(reshape2)) { 
+  install.packages("reshape2", repos="http://cran.r-project.org") 
+  library(reshape2) 
+}
+
+
 if (!require(pracma)) { 
   install.packages("pracma", repos="http://cran.r-project.org") 
   library(pracma) 
@@ -127,6 +133,21 @@ dfPowellHistorical <- read.csv(file=sPowellHistoricalFile,
                                stringsAsFactors=FALSE,
                                sep=",")
 
+# Read in Lake Powell Release Temperature Data (provided by Bryce M.)
+sPowellReleaseTempFile <- 'GCD_release_water_temp.csv'
+
+# Read in the historical Powell data
+dfPowellReleaseTemp <- read.csv(file=sPowellReleaseTempFile, 
+                               header=TRUE, 
+                               
+                               stringsAsFactors=FALSE,
+                               sep=",")
+library(chron)
+#Convert just the date
+dfPowellReleaseTemp$DateClean <- as.Date(dfPowellReleaseTemp$DateTime, "%m/%d/%Y")
+#Convert the time
+#dfPowellReleaseTemp$DateTimeClean <- as.POSIXct(dfPowellReleaseTemp$DateTime, format="%m/%d/%Y %H:%M:%S")
+dfPowellReleaseTemp$DateTimeClean <- mdy_hms(dfPowellReleaseTemp$DateTime)
 
 ###This reservoir data comes from CRSS. It was exported to Excel.
 
@@ -137,7 +158,90 @@ sStation <- 'LPCR0024'   #Closest to Dam
 # Read in the historical Mead data
 dfPowellZones <- read_excel(sExcelFile)
 
-### 2. Join the Profile and Historical dataframes on the date
+
+###### 2. Plot Release temperature data vs time
+
+## Calculate daily min, max, average, range
+dfPowellReleaseTempSum <- dfPowellReleaseTemp %>% group_by(DateClean) %>% summarize(minDay = min(WaterTemp_C),
+                                                                                    maxDay = max(WaterTemp_C),
+                                                                                    avgDay = mean(WaterTemp_C),
+                                                                                    rangeDay = max(WaterTemp_C) - min(WaterTemp_C))
+
+#Pull out Year, Month, Day for plotting
+dfPowellReleaseTempSum$Year <- year(dfPowellReleaseTempSum$DateClean)
+dfPowellReleaseTempSum$Month <- month(dfPowellReleaseTempSum$DateClean)
+dfPowellReleaseTempSum$Day <- day(dfPowellReleaseTempSum$DateClean)
+
+## Plot histograms of the daily range for each month
+
+ggplot(dfPowellReleaseTempSum, aes(x=rangeDay)) +
+  geom_histogram(color="darkmagenta", fill="magenta", binwidth = 0.2) +
+  
+  #scale_x_continuous(limits = c(2,22), breaks = seq(2,22,by=2)) +
+  #scale_y_continuous(breaks = seq(0,11,by=2)) +
+  
+  facet_wrap(~ Month) +
+  
+  labs(x="Daily Range of Powell Release Temperature (oC)", y="Frequency\n(number of days)") +
+  theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+        legend.key = element_blank())
+
+ggsave("PowellReleaseTempRangeByMonth.png", width=9, height = 6.5, units="in")
+
+
+## Plot histograms of the daily range for each year
+
+ggplot(dfPowellReleaseTempSum, aes(x=rangeDay)) +
+  geom_histogram(color="darkmagenta", fill="magenta", binwidth = 0.2) +
+  
+  #scale_x_continuous(limits = c(2,22), breaks = seq(2,22,by=2)) +
+  #scale_y_continuous(breaks = seq(0,11,by=2)) +
+  
+  facet_wrap(~ Year) +
+  
+  labs(x="Daily Range of Powell Release Temperature (oC)", y="Frequency\n(number of days)") +
+  theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+        legend.key = element_blank())
+
+ggsave("PowellReleaseTempRangeByYear.png", width=9, height = 6.5, units="in")
+
+# Try facets of months (rows) and years (columns)
+
+ggplot(dfPowellReleaseTempSum, aes(x=rangeDay)) +
+  geom_histogram(color="darkmagenta", fill="magenta", binwidth = 0.2) +
+  
+  #scale_x_continuous(limits = c(2,22), breaks = seq(2,22,by=2)) +
+  #scale_y_continuous(breaks = seq(0,11,by=2)) +
+  
+  facet_grid(Month ~ Year) +
+  
+  labs(x="Daily Range of Powell Release Temperature (oC)", y="Frequency\n(number of days)") +
+  theme(text = element_text(size=16), legend.title=element_blank(), legend.text=element_text(size=14),
+        legend.key = element_blank())
+
+ggsave("PowellReleaseTempRangeByMonthYear.png", width=9, height = 6.5, units="in")
+
+## Plot the range of temperature by day
+ggplot(dfPowellReleaseTempSum %>% filter(Year > 2006)) +
+  geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Error bar
+  geom_errorbar(aes(x=Day,ymin= minDay, ymax=maxDay), color="black") +
+  
+  
+  scale_x_continuous(breaks = c(1,31)) +
+  scale_y_continuous(breaks = c(8,16)) +
+  
+  facet_grid(Year ~ Month) +
+  
+  labs(x="Day", y="Release Temperature (oC)") +
+  theme(text = element_text(size=12), legend.title=element_blank(), legend.text=element_text(size=10),
+        legend.key = element_blank())
+
+ggsave("PowellReleaseTempErrorByMonthYear.png", width=9, height = 6.5, units="in")
+
+
+
+### 3. Join the Profile and Historical dataframes on the date
 
 # Convert to date format
 dfPowellHistorical$dDateTemp <- as.Date(dfPowellHistorical$Date, "%d-%b-%y")
@@ -313,6 +417,176 @@ ggsave("PowellTempProfile.png", width=9, height = 6.5, units="in")
 
 
 
+### 4. Compare the Release Temperature to Profile Temperature on all days when they overlap
+
+# First interpolate temperatures at the specified elevations such as the turbine intake
+# This is a guess as to what elevations are good
+
+cIntakeElevRange <- c(dfPowellZonesShort$level_feet[6], 3550) # feet
+
+dfTempAtDepth <- data.frame(dDate=as.Date("1900-01-01"), WaterSurface = 0, elevation=0,IntTemp = 0)
+
+#Loop over the elevations in the zone dataframe
+for (elev in cIntakeElevRange ) {
+  
+  #elev = cIntakeElevRange[1]
+  
+  #elev <- dfPowellZonesShort$level_feet[1]
+  print(elev)
+  
+  #Interpolate for each date group
+  dfCurrLevel <- dfPowellTempLevels %>% filter(Station.ID == sStation) %>% group_by(dDate) %>% summarize(IntTemp = interpNA(xi=elev, x=MeasLevel, y=T, method="linear"), WaterSurface = max(Elevation..feet.))
+  
+  #Add to the dataframe
+  #nminTemp <- min(na.omit(dfTempAtDepth$IntTemp))
+  # <- max(na.omit(dfTempAtDepth$IntTemp))
+  dfCurrLevel$elevation <- elev
+  #dfCurrLevelGroup$ElevationClass <- as.factor(dfCurrLevelGroup$ElevationClass)
+  
+  dfTempAtDepth <- rbind(dfTempAtDepth,as.data.frame(dfCurrLevel))
+}
+
+#Remove first record
+dfTempAtDepth <- dfTempAtDepth[2:nrow(dfTempAtDepth),]
+#Remove records with NAs
+dfTempAtDepth <- na.omit(dfTempAtDepth)
+
+#Add day and numeric Month
+#dfTempAtDepth$dDate <- as.Date(dfTempAtDepth$dDate)
+dfTempAtDepth$Month <- month(dfTempAtDepth$dDate)
+dfTempAtDepth$Day <- day(dfTempAtDepth$dDate)
 
 
 
+## Plot the range of temperature by day
+ggplot() +
+  #geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Error bar on release data
+  geom_errorbar(data = dfPowellReleaseTempSum, aes(x=Day,ymin= minDay, ymax=maxDay), color="black") +
+  #Error bar on profile data
+  geom_errorbar(data = dfTempAtDepth %>% filter(elevation == cIntakeElevRange[1]), aes(x=Day, ymin = IntTemp, ymax = IntTemp), color="red") +
+  
+  
+  scale_x_continuous(breaks = c(1,31)) +
+  scale_y_continuous(breaks = c(8,16)) +
+  
+  facet_grid(Month ~ Year) +
+  
+  labs(x="Day", y="Temperature (oC)") +
+  theme(text = element_text(size=12), legend.title=element_blank(), legend.text=element_text(size=10),
+        legend.key = element_blank())
+
+ggsave("CompareReleaseWaweapRange.png", width=9, height = 6.5, units="in")
+
+## More explicitly compare on a bi-plot
+## x-Axis = Temperature at WahWeap @ 3,490 ft (oC)", y-Axis = "Release Temperature (oC)"
+
+# Join the Water profile and release temperature data
+
+library(ggrepel)
+
+dfTempCompare <- inner_join(dfPowellReleaseTempSum, dfTempAtDepth,by = c("DateClean" = "dDate"))
+
+ggplot(data=dfTempCompare %>% filter(elevation == cIntakeElevRange[1]) %>% arrange(DateClean)) +
+  #geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Error bar on release data - color by water surface
+  geom_errorbar(aes(x=IntTemp, ymin= minDay, ymax=maxDay, color=WaterSurface), size=1.5) +
+  #Error bar on release data - color by Year
+  #geom_errorbar(aes(x=IntTemp, ymin= minDay, ymax=maxDay, color=Year), size=1) +
+  #A line to connect the centroids
+  #geom_path(aes(x=IntTemp, y= (minDay + maxDay)/2), color="grey50") +
+  #Label the 1:1 line
+  geom_text(aes(x=12,y=12.5,label="1:1 line"), angle=45, color="red") +
+  
+  #Label the error bar outliers > 14.3oC
+  #Above 13.5oC label goes above bar
+  geom_text_repel(data=dfTempCompare %>% filter(IntTemp > 14.3, maxDay > 13.5, elevation == cIntakeElevRange[1]) %>% distinct(),
+                  aes(x=IntTemp, y=maxDay, label=as.character(DateClean)), nudge_y=0.1, vjust=0, direction="x",angle = 90 , segment.color = "grey50" ) +
+  #Below 13.5oC label goes below bar
+  geom_text_repel(data=dfTempCompare %>% filter(IntTemp > 14.3, maxDay <= 13.5, elevation == cIntakeElevRange[1]) %>% distinct(),
+                  aes(x=IntTemp, y=minDay, label=as.character(DateClean)), nudge_y=-0.1, vjust=1, direction="x",angle = 90 , segment.color = "grey50" ) +
+  
+  
+  
+  
+  #1:1 line
+  geom_abline(intercept = 0, slope = 1, color="red", linetype = "longdash", size = 1.5) + 
+  coord_fixed(ratio=1) + 
+  
+  scale_x_continuous(breaks = seq(8,26, by=2)) +
+  #scale_y_continuous(breaks = c(8,16)) +
+  
+  #facet_grid(Month ~ Year) +
+  
+  scale_color_continuous(low=palBlues[3],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color", limits=c(3550,3700)) +
+  
+  
+  labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Release Temperature (oC)", color="Water Surface (feet)") +
+  #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Release Temperature (oC)", color="") +
+  
+  theme(text = element_text(size=18), legend.text=element_text(size=16),
+        legend.key = element_blank())
+
+ggsave("CompareReleaseWaweap.png", width=9, height = 6.5, units="in")
+
+
+### Interative version of the release temperature timeseries compared to Wahweap
+#test of dygraphs interactive time series
+#https://www.r-graph-gallery.com/318-custom-dygraphs-time-series-example.html
+
+#install.packages(c("dygraphs","xts"))
+
+# Library
+library(dygraphs)
+library(xts)          # To make the convertion data-frame / xts format
+library(tidyverse)
+library(lubridate)
+
+# Since my time is currently a factor, I have to convert it to a date-time format!
+#data$datetime <- ymd_hms(data$datetime)
+
+# Then you can create the xts necessary to use dygraph
+
+#Create the dataframe
+dfPowellTemp <- dfPowellReleaseTemp[,c("DateTimeClean","DateClean","WaterTemp_C")]
+#Join in the Wahweap observations
+dfPowellTemp <- left_join(dfPowellTemp,dfTempCompare %>% filter(elevation == cIntakeElevRange[1]) %>% select(DateClean,IntTemp), by=c("DateClean" = "DateClean"))
+dfPowellTemp$Wahweap <- dfPowellTemp$IntTemp
+
+# Plot timeseries compare release temperature and profile temperature
+
+pReleaseTempPlot <- ggplot(data=dfPowellTemp) +
+  #Release Temperature
+  geom_line(aes(x = DateTimeClean,y = WaterTemp_C, color = "Release"), size=1) +
+  geom_point(aes(x = DateTimeClean, y = Wahweap, color = "Wahweap @ 3,490 feet"), size=1.5) +
+  
+  scale_color_manual(values = c("black","red")) + 
+  
+  scale_x_datetime() +
+  
+  theme_bw() +
+  #coord_fixed() +
+  labs(y="Water Temperature (oC)", x="", color="") +
+  theme(text = element_text(size=18), legend.text=element_text(size=16), legend.position = c(0.2, 0.9))
+
+pReleaseTempPlot
+
+ggsave("CompareReleaseWaweapVsTime.png", width=9, height = 6.5, units="in")
+
+
+
+don <- xts(x = dfPowellTemp, order.by = dfPowellTemp$DateTimeClean)
+
+# Finally the plot
+p <- dygraph(don) %>%
+  dyOptions(labelsUTC = TRUE, fillGraph=TRUE, fillAlpha=0.1, drawGrid = FALSE, colors="#D8AE5A") %>%
+  dyRangeSelector() %>%
+  dyCrosshair(direction = "vertical") %>%
+  dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE)  %>%
+  dyRoller(rollPeriod = 1)
+
+p
+
+# save the widget
+# library(htmlwidgets)
+# saveWidget(p, file=paste0( getwd(), "/HtmlWidget/dygraphs318.html"))
