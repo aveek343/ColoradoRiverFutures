@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1592612221181.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2408712135",
+    "id" : "1C272EC6",
+    "lastKnownWriteTime" : 1595477985,
+    "last_content_update" : 1595477985055,
+    "path" : "C:/Rosenberg/Work/USU/Research/ColoradoRiver/RCode/ColoradoRiverFutures/LakePowellTemperatureScenarios/LakePowellTempScenarios.R",
+    "project_path" : "LakePowellTempScenarios.R",
+    "properties" : {
+        "cursorPosition" : "696,0",
+        "scrollLine" : "686"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
