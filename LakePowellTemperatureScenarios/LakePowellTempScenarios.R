@@ -168,6 +168,80 @@ sStation <- 'LPCR0024'   #Closest to Dam
 dfPowellZones <- read_excel(sExcelFile)
 
 
+# Load in the fish temperature suitability data from Excel/Valdez et al (2013)
+
+sTempSuitFile <- 'FishTemperatureRequirements.xlsx'
+
+dfFishTempSuit <- read_excel(sTempSuitFile, sheet = 2, col_names=TRUE)
+dfMinDegreeDays <- read_excel(sTempSuitFile, sheet = 3, col_names=TRUE)
+
+# Melt to move life stage into a new category
+dfFishTempSuitMelt <- melt(dfFishTempSuit, id.vars= c("Common Name", "Group", "GroupDescript", "Code", "Keystone"))
+#Split variable into species life stage and measurement
+lTemp <- (as.data.frame(matrix(unlist(str_split(dfFishTempSuitMelt$variable, pattern="-")),ncol=2,byrow=TRUE)))
+colnames(lTemp) <- c("LifeStage","Var")
+lTemp$Row <- 1:nrow(lTemp)
+dfFishTempSuitMelt$Row <- 1:nrow(dfFishTempSuitMelt)
+# Join the split strings back in
+dfFishTempSuitMelt <- inner_join(dfFishTempSuitMelt,lTemp,by = c("Row" = "Row"))
+# Cast to separate out vars
+dfFishTempSuitPlot <- dcast(dfFishTempSuitMelt, `Common Name` + GroupDescript + LifeStage + Keystone ~ Var)
+
+dfFishTempSuitPlot$LifeStage <- as.character(dfFishTempSuitPlot$LifeStage)
+#Reorder by the gouping in the plot => Temp group, Keystone, Common Name
+dfFishTempSuitPlot <- dfFishTempSuitPlot[order(dfFishTempSuitPlot$GroupDescript,-dfFishTempSuitPlot$Keystone,dfFishTempSuitPlot$`Common Name`),]
+dfFishTempSuitPlot$Xplot <- paste(dfFishTempSuitPlot$GroupDescript, 1 - dfFishTempSuitPlot$Keystone,dfFishTempSuitPlot$`Common Name`,sep="-")
+cNames <- dfFishTempSuitPlot %>% filter(LifeStage == "Growth") %>% select(`Common Name`)
+cgNames <- dfFishTempSuitPlot %>% filter(LifeStage == "Growth") %>% select(Xplot)
+
+# plot the suitability data
+
+ggplot(dfFishTempSuitPlot) +
+  #Min-max range
+  geom_errorbar(aes(x = Xplot, ymin = Min., ymax = Max., color=GroupDescript, size = Keystone)) +
+  #Optimal as point
+  #geom_point(aes(x=Xplot,y=Opt., color=GroupDescript),size=4) +
+  
+  facet_wrap( ~ LifeStage) +
+  
+  scale_color_manual(values = c("blue","red","pink")) +
+ # scale_x_discrete(labels = dfFishTempSuitPlot %>% filter(LifeStage == "Growth") %>% select(`Common Name`)) +
+  scale_size_continuous(range = c(1,2), breaks = c(0,1), labels = c("Study", "Keystone")) +
+  
+  scale_x_discrete(breaks = cgNames$Xplot, labels = cNames$`Common Name`) +
+  
+  labs(x="Fish Species (common name)", y="River Temperature (oC)") +
+  theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+        legend.key = element_blank(), axis.text.x = element_text(angle = 90, size=10, hjust=0.95,vjust=0.2))
+
+ggsave("SpeciesTempNeeds.png", width=9, height = 6.5, units="in")
+
+
+# Plot all life stages on top of eahc other
+ggplot(dfFishTempSuitPlot) +
+  #Min-max range
+  geom_errorbar(aes(x = Xplot, ymin = Min., ymax = Max., color=GroupDescript, size = Keystone)) +
+  #Optimal as point
+  #geom_point(aes(x=Xplot,y=Opt., color=GroupDescript),size=4) +
+  
+  #facet_wrap( ~ LifeStage) +
+  
+  scale_color_manual(values = c("blue","red","pink")) +
+  # scale_x_discrete(labels = dfFishTempSuitPlot %>% filter(LifeStage == "Growth") %>% select(`Common Name`)) +
+  scale_size_continuous(range = c(1,2), breaks = c(0,1), labels = c("Study", "Keystone")) +
+  
+  scale_x_discrete(breaks = cgNames$Xplot, labels = cNames$`Common Name`) +
+  
+  labs(x="Fish Species (common name)", y="River Temperature (oC)") +
+  theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+        legend.key = element_blank(), axis.text.x = element_text(angle = 90, size=14, hjust=0.95,vjust=0.2))
+
+
+
+  
+
+
+
 ###### 2. Plot Release temperature data vs time
 
 ## Calculate daily min, max, average, range
@@ -183,6 +257,7 @@ dfPowellReleaseTempSum$Month <- month(dfPowellReleaseTempSum$DateClean)
 dfPowellReleaseTempSum$MonthTxt <- format(dfPowellReleaseTempSum$DateClean, "%b")
 dfPowellReleaseTempSum$Day <- day(dfPowellReleaseTempSum$DateClean)
 dfPowellReleaseTempSum$WaterYear <- ifelse(dfPowellReleaseTempSum$Month >= 10,dfPowellReleaseTempSum$Year, dfPowellReleaseTempSum$Year - 1 )
+dfPowellReleaseTempSum$DayOfYear <- yday(dfPowellReleaseTempSum$DateClean)
 
 dfDaysPerYear <- dfPowellReleaseTempSum %>% group_by(Year) %>% summarize(numDays = n())
 dfDaysPerMonthYear <- dfPowellReleaseTempSum %>% group_by(Year,Month) %>% summarize(numDays = n())
@@ -270,6 +345,24 @@ ggplot(dfPowellReleaseTempSum %>% filter(Year > 1988), aes(rangeDay, group=Water
 
 
 ggsave("PowellReleaseTempRangeByMonthYearCDF.png", width=9, height = 6.5, units="in")
+
+
+
+## Plot average daily temperature by day of year. Color different years
+
+ggplot(dfPowellReleaseTempSum, aes(x = DayOfYear, y= avgDay, group=Year, color=Year)) +
+  geom_line() +
+  
+ # scale_color_continuous(low=palBlues[3],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color", name="Year") +
+  
+  
+  labs(x="Julian Day", y="Avg. Daily Release Temperature (oC)", color = "Year") +
+  theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+        legend.key = element_blank())
+
+
+ggsave("DailyReleaseBy.png", width=9, height = 6.5, units="in")
+
 
 
 
@@ -722,7 +815,8 @@ ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=2), !is.na(Leve
   #geom_line(aes(x=Day,y=avgDay), color="black") +
   #Error bar on release data - color by water surface
   #geom_errorbar(aes(ymin= minDay, ymax=maxDay, color=WaterYear), size=1) +
-  geom_errorbar(aes(ymin= minDay, ymax=maxDay, color=as.factor(Month.x)), size=1) +
+  geom_errorbar(aes(ymin= minDay, ymax=maxDay, color=as.factor(Month.x)), size=0.5) +
+  #geom_path(aes(color=as.factor(Month.x)), size=1, na.rm = TRUE) +
 
   # Label Oct 1 of each year
   #geom_text(data=dfPowellReleaseElev %>% filter(Month.x==10,Day==1, !is.na(LevelYearType), !is.na(TempYearType)), aes(x=WaterSurface,y=avgDay,label=WaterYear),color="Purple", size=4) +
@@ -754,6 +848,26 @@ ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=2), !is.na(Leve
         legend.key = element_blank())
 
 ggsave("TempWaterLevelChange.png", width=9, height = 6.5, units="in")
+
+
+## Plot the range of temperature by day for different years. Kind of a mess. avgDay is better.
+# ggplot() +
+#   #geom_line(aes(x=Day,y=avgDay), color="black") +
+#   #Error bar on release data
+#   geom_errorbar(data = dfPowellReleaseTempSum, aes(x=DayOfYear,ymin= minDay, ymax=maxDay, color=Year)) +
+#   #Error bar on profile data
+#   #geom_errorbar(data = dfTempAtDepth %>% filter(elevation == cIntakeElevRange[1]), aes(x=Day, ymin = IntTemp, ymax = IntTemp), color="red") +
+#   
+#   #scale_x_continuous(breaks = c(1,31)) +
+#   #scale_y_continuous(breaks = c(8,16)) +
+#   
+#   #facet_grid(Month ~ Year) +
+#   
+#   labs(x="Julian Day", y="Release Temperature (oC)", color="Year") +
+#   theme(text = element_text(size=12), legend.title=element_blank(), legend.text=element_text(size=10),
+#         legend.key = element_blank())
+# 
+# ggsave("RangeTemperatureByYear.png", width=9, height = 6.5, units="in")
 
 
 
