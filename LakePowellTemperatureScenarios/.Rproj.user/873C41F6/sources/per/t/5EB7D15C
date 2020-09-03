@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597955950989.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "5EB7D15C",
+    "lastKnownWriteTime" : 0,
+    "last_content_update" : 1597955950989,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "57E08BFA",
+        "caption" : "dfCisco",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfCisco&cache_key=57E08BFA",
+        "displayedObservations" : 39040,
+        "environment" : "",
+        "object" : "dfCisco",
+        "preview" : 0,
+        "totalObservations" : 39040,
+        "variables" : 8
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

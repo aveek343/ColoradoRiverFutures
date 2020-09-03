@@ -236,7 +236,7 @@ ggplot(dfFishTempSuitPlot) +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
         legend.key = element_blank(), axis.text.x = element_text(angle = 90, size=14, hjust=0.95,vjust=0.2))
 
-
+ggsave("SpeciesTempNeedsCombined.png", width=9, height = 6.5, units="in")
 
   
 
@@ -346,22 +346,57 @@ ggplot(dfPowellReleaseTempSum %>% filter(Year > 1988), aes(rangeDay, group=Water
 
 ggsave("PowellReleaseTempRangeByMonthYearCDF.png", width=9, height = 6.5, units="in")
 
+## Load and plot CO river at Cisco as an example of natural temperature hydrograph
+# Read in Lake Powell Release Temperature Data (provided by Bryce M.)
+sCOCiscoFile <- 'ColoradoRiverCisco.xlsx'
 
+# Read in the historical Cisco data
+dfCisco <- read_excel(sCOCiscoFile, col_names=FALSE, range = "A33969:H39061")
+#Rename the columns
+colnames(dfCisco) <- c("Org", "Gage", "Date", "Flow(cfs)", "Accuracy", "Mean Temperature (oC)", "Max Temperature (oC)",	"Min Temperature (oC)")
 
-## Plot average daily temperature by day of year. Color different years
+#Convert to date
+dfCisco$Date <- as.Date(dfCisco$Date)
+dfCisco$Year <- year(dfCisco$Date)
+dfCisco$DayOfYear <- yday(dfCisco$Date)
+dfCisco$TempRange <- dfCisco$`Max Temperature (oC)` - dfCisco$`Min Temperature (oC)`
 
-ggplot(dfPowellReleaseTempSum, aes(x = DayOfYear, y= avgDay, group=Year, color=Year)) +
+#Plot
+ggplot(dfCisco %>% filter(`Mean Temperature (oC)` < 100, Year==2018), aes(x = DayOfYear, y= `Mean Temperature (oC)`, group=Year, color=Year)) +
   geom_line() +
   
- # scale_color_continuous(low=palBlues[3],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color", name="Year") +
+  # scale_color_continuous(low=palBlues[3],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color", name="Year") +
   
   
-  labs(x="Julian Day", y="Avg. Daily Release Temperature (oC)", color = "Year") +
+  labs(x="Julian Day", y="Avg. Daily Temperature at Cisco (oC)", color = "Year") +
   theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
         legend.key = element_blank())
 
 
-ggsave("DailyReleaseBy.png", width=9, height = 6.5, units="in")
+
+
+
+
+## Plot average daily temperature by day of year. Color different years
+
+ggplot(dfPowellReleaseTempSum, aes(x = DayOfYear, y= avgDay, group=Year), color="Red") +
+  geom_line() +
+  
+  #Overplot temperature at Cisco in thick black
+  geom_line(data = dfCisco %>% filter(`Mean Temperature (oC)`< 100), aes(x = DayOfYear, y= `Mean Temperature (oC)`, group="Year"), color="Blue")) +
+  
+  #Add fish temperature threshold
+  geom_hline(yintercept=14, color="black", size=2, linestyle="longdash") + 
+  scale_color_manual(values = c("Red","Black","Blue", breaks=c("Cisco","Powell Release","Fish Threshold"))) +
+ # scale_color_continuous(low=palBlues[3],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color", name="Year") +
+  
+  
+  labs(x="Julian Day", y="Water Temperature (oC)", color = "Location") +
+  theme(text = element_text(size=20), legend.title=element_blank(), legend.text=element_text(size=18),
+        legend.key = element_blank())
+
+
+ggsave("CiscoReleaseFishThreshold.png", width=9, height = 6.5, units="in")
 
 
 
@@ -642,24 +677,24 @@ dfTempAtDepth$Day <- day(dfTempAtDepth$dDate)
 
 
 ## Plot the range of temperature by day
-ggplot() +
-  #geom_line(aes(x=Day,y=avgDay), color="black") +
-  #Error bar on release data
-  geom_errorbar(data = dfPowellReleaseTempSum, aes(x=Day,ymin= minDay, ymax=maxDay), color="black") +
-  #Error bar on profile data
-  geom_errorbar(data = dfTempAtDepth %>% filter(elevation == cIntakeElevRange[1]), aes(x=Day, ymin = IntTemp, ymax = IntTemp), color="red") +
-  
-  
-  scale_x_continuous(breaks = c(1,31)) +
-  scale_y_continuous(breaks = c(8,16)) +
-  
-  facet_grid(Month ~ Year) +
-  
-  labs(x="Day", y="Temperature (oC)") +
-  theme(text = element_text(size=12), legend.title=element_blank(), legend.text=element_text(size=10),
-        legend.key = element_blank())
+# ggplot() +
+#   #geom_line(aes(x=Day,y=avgDay), color="black") +
+#   #Error bar on release data
+#   geom_errorbar(data = dfPowellReleaseTempSum, aes(x=Day,ymin= minDay, ymax=maxDay), color="black") +
+#   #Error bar on profile data
+#   geom_errorbar(data = dfTempAtDepth %>% filter(elevation == cIntakeElevRange[1]), aes(x=Day, ymin = IntTemp, ymax = IntTemp), color="red") +
+#   
+#   
+#   scale_x_continuous(breaks = c(1,31)) +
+#   scale_y_continuous(breaks = c(8,16)) +
+#   
+#   facet_grid(Month ~ Year) +
+#   
+#   labs(x="Day", y="Temperature (oC)") +
+#   theme(text = element_text(size=12), legend.title=element_blank(), legend.text=element_text(size=10),
+#         legend.key = element_blank())
 
-ggsave("CompareReleaseWaweapRange.png", width=9, height = 6.5, units="in")
+# ggsave("CompareReleaseWaweapRange.png", width=9, height = 6.5, units="in")
 
 ## More explicitly compare on a bi-plot
 ## x-Axis = Temperature at WahWeap @ 3,490 ft (oC)", y-Axis = "Release Temperature (oC)"
@@ -793,7 +828,7 @@ dfMinMax <- dfPowellReleaseElev %>% group_by(Year.x) %>%
 
 ### Plot Release temperature vs. lake surface elevation for all dates (Very messy)
 
-ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange(DateClean)) +
+ggplot(data=dfPowellReleaseElev %>% filter(Month.x %in% seq(4,10, by=1),Day %in% seq(1,31, by=1)) %>% arrange(DateClean)) +
   #geom_line(aes(x=Day,y=avgDay), color="black") +
   #Error bar on release data - color by water surface
   geom_errorbar(aes(x=WaterSurface, ymin= minDay, ymax=maxDay, color = Month.x), size=1) +
@@ -807,6 +842,103 @@ ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange
         legend.key = element_blank())
 
 ggsave("CompareReleaseElevation.png", width=9, height = 6.5, units="in")
+
+#Water Surface Elevation vs Release Temeprature by years for July to Dec
+
+ggplot(data=dfPowellReleaseElev %>% filter(Month.x %in% seq(6,12, by=1),Day %in% seq(1,31, by=2)) %>% arrange(DateClean)) +
+  #geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Error bar on release data - color by water surface
+  geom_errorbar(aes(x=WaterSurface, ymin= minDay, ymax=maxDay, color = as.factor(Year.x)), size=1) +
+  geom_text_repel(data = dfPowellReleaseElev %>% filter(Month.x == 6, Day == 1), aes(x=WaterSurface,y=minDay, label=Year.x)) +
+  
+  #scale_color_continuous(low=palBlues[2],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
+  
+  labs(x="Water Surface Elevation (feet)", y="Release Temperature (oC)", color="Month") +
+  #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Release Temperature (oC)", color="") +
+  
+  theme(text = element_text(size=18), legend.text=element_text(size=16),
+        legend.key = element_blank())
+
+
+
+
+# Pull out min and max temps and water surface elevations for each year
+
+dfPowellReleaseElevMaxes <- dfPowellReleaseElev %>% group_by(Year.x) %>% 
+          summarize(minElev = min(WaterSurface), maxElev = max(WaterSurface), minTemp = min(avgDay), maxTemp =max(avgDay),
+                    minElevInd = which.min(WaterSurface),
+                    maxElevInd = which.max(WaterSurface))
+
+#Join in the yearly changes
+dfPowellReleaseElevMaxes <- inner_join(dfPowellReleaseElevMaxes,dfPowellLevelChange, by = c("Year.x" = "Year.y"))
+
+### Plot Year-Max Release temperature vs. Year-max water surface elevation. Color by water level change for the year
+
+ggplot(data=dfPowellReleaseElevMaxes) +
+  #geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Error bar on release data - color by water surface
+  #geom_errorbar(aes(x=(minElev), ymin= minTemp, ymax=maxTemp), size=1) +
+  geom_point(aes(x=(maxElev), y=maxTemp, color=maxElev-minElev), size=5) +
+  #(aes(y=maxTemp, xmin= minElev, xmax=maxElev), size=1, color="black") +
+  
+  geom_text(x=3662,y=15.75,label=lm_eqn(dfPowellReleaseElevMaxes %>% filter(maxElev < 3650), 'maxTemp','maxElev'),color='red',parse=T, size=6) +
+  geom_smooth(data=dfPowellReleaseElevMaxes %>% filter(maxElev < 3650), aes(x=maxElev,y=maxTemp), method='lm') +
+  
+  geom_text_repel(aes(y=(maxTemp), x=maxElev, label = Year.x), size=5) +
+  
+  scale_color_continuous(low=palBlues[2],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
+  
+  labs(x="Max Water Surface Elevation for Year (feet)", y="Max Release Temperature (oC)", color="Water Level Range\nfor Year (feet)") +
+  #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Release Temperature (oC)", color="") +
+  
+  theme(text = element_text(size=18), legend.text=element_text(size=16),
+        legend.key = element_blank())
+
+ggsave("CompareReleaseElevation.png", width=9, height = 6.5, units="in")
+
+#Helper function to plot equation, r2, and significance on plot 
+# See @Ramnath at https://stackoverflow.com/questions/7549694/add-regression-line-equation-and-r2-on-graph
+
+lm_eqn <- function(df, y, x){
+  formula = as.formula(sprintf('%s ~ %s', y, x))
+  m <- lm(formula, data=df);
+  # formating the values into a summary string to print out
+  # ~ give some space, but equal size and comma need to be quoted
+  eq <- substitute(italic(target) == a + b %.% italic(input)*","~~italic(r)^2~"="~r2*","~~p~"="~italic(pvalue), 
+                   list(target = y,
+                        input = x,
+                        a = format(as.vector(coef(m)[1]), digits = 2), 
+                        b = format(as.vector(coef(m)[2]), digits = 2), 
+                        r2 = format(summary(m)$r.squared, digits = 3),
+                        # getting the pvalue is painful
+                        pvalue = format(summary(m)$coefficients[2,'Pr(>|t|)'], digits=1)
+                   )
+  )
+  as.character(as.expression(eq));                 
+}
+
+
+#Plot temperature versus change in elevation
+
+ggplot(data=dfPowellReleaseElevMaxes, aes(x=maxElev-minElev, y=maxTemp)) +
+  #geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Error bar on release data - color by water surface
+  
+  geom_point() +
+  ggrepel::geom_text_repel(aes(label=Year.x), size=6) +
+  geom_text(x=20,y=16,label=lm_eqn(dfPowellReleaseElevMaxes, 'maxElev-minElev','maxTemp'),color='red',parse=T, size=6) +
+  geom_smooth(method='lm') +
+ 
+  #scale_color_continuous(low=palBlues[2],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
+  
+  labs(x="Annual Change in Water Surface Elevation (feet)", y="Max Release Temperature (oC)") +
+  #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Release Temperature (oC)", color="") +
+  
+  theme(text = element_text(size=18), legend.text=element_text(size=16),
+        legend.key = element_blank())
+
+ggsave("CompareReleaseElevation.png", width=9, height = 6.5, units="in")
+
 
 
 #Separate by Water Level and Temperature year types
