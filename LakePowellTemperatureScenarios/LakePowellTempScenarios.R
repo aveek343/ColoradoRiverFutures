@@ -843,6 +843,28 @@ ggplot(data=dfPowellReleaseElev %>% filter(Month.x %in% seq(4,10, by=1),Day %in%
 
 ggsave("CompareReleaseElevation.png", width=9, height = 6.5, units="in")
 
+
+#Water Surface Elevation vs Release Temperature by Month
+
+ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange(DateClean)) +
+  #geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Error bar on release data - color by water surface
+  geom_errorbar(aes(y=WaterSurface, xmin= minDay, xmax=maxDay, color = Year.x), size=1) +
+  
+  scale_color_continuous(low=palBlues[2],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
+  
+  labs(y="Water Surface Elevation (feet)", x="Release Temperature (oC)", color="Year") +
+  #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Release Temperature (oC)", color="") +
+  
+  facet_wrap(~Month.x) +
+  
+  theme(text = element_text(size=18), legend.text=element_text(size=16),
+        legend.key = element_blank())
+
+ggsave("CompareReleaseElevationMonth.png", width=9, height = 6.5, units="in")
+
+
+
 #Water Surface Elevation vs Release Temeprature by years for July to Dec
 
 ggplot(data=dfPowellReleaseElev %>% filter(Month.x %in% seq(6,12, by=1),Day %in% seq(1,31, by=2)) %>% arrange(DateClean)) +
