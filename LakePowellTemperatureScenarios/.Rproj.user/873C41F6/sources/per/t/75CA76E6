@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1603210367200.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "75CA76E6",
+    "lastKnownWriteTime" : 6515701943949545574,
+    "last_content_update" : 1603210367200,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "28369104",
+        "caption" : "dfPowellZonesShort",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfPowellZonesShort&cache_key=28369104",
+        "displayedObservations" : 8,
+        "environment" : "",
+        "object" : "dfPowellZonesShort",
+        "preview" : 0,
+        "totalObservations" : 8,
+        "variables" : 6
+    },
+    "relative_order" : 11,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

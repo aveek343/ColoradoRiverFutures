@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1603210252260.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2667E3BF",
+    "lastKnownWriteTime" : 3419473789575321445,
+    "last_content_update" : 1603210252260,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "55C50EC9",
+        "caption" : "dfTempElevationModelCalc",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfTempElevationModelCalc&cache_key=55C50EC9",
+        "displayedObservations" : 972,
+        "environment" : "",
+        "object" : "dfTempElevationModelCalc",
+        "preview" : 0,
+        "totalObservations" : 972,
+        "variables" : 4
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

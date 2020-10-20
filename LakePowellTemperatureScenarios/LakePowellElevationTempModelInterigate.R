@@ -381,7 +381,7 @@ ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange
   #geom_line(aes(x=Day,y=avgDay), color="black") +
   #Points represent transformed temperature profile reading. For a specific depth below the water surface,
   #we calculate the elevation that would put the depth at the turbine elevation
-  geom_point(data = dfPowellTempLevelsPlot %>% filter(Depth*dMetersToFeet <= 3600 - dfPowellZonesShort[6,2]), aes(y = ElevAvbPenstock, x = T, shape ="Profile data-\nest. release\ntemp."), color = "Red", size=0.75) +
+  geom_point(data = dfPowellTempLevelsPlot %>% filter(Depth*dMetersToFeet <= 3600 - dfPowellZonesShort[6,2]), aes(y = ElevAvbPenstock, x = T, shape ="Wahweap temperature\nat turbine elev."), color = "Red", size=0.75) +
     #Error bar on release data - color by water surface
   geom_errorbar(aes(y=WaterSurface, xmin= minDay, xmax=maxDay, color = Year.x), size=1) +
   geom_line(data = dfTempElevationModelCalc %>% filter(Elevation > dfPowellZonesShort[6,2] - 10), aes(x=Temperature, y=Elevation, linetype="Spreadsheet model"), color = "Black", size=1.25) +

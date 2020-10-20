@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1603153403252.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "5AD4BC0C",
+    "lastKnownWriteTime" : 7308604914264011873,
+    "last_content_update" : 1603153403252,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "6FCA9FE7",
+        "caption" : "dfPowellReleaseElev",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfPowellReleaseElev&cache_key=6FCA9FE7",
+        "displayedObservations" : 9336,
+        "environment" : "",
+        "object" : "dfPowellReleaseElev",
+        "preview" : 0,
+        "totalObservations" : 9336,
+        "variables" : 28
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

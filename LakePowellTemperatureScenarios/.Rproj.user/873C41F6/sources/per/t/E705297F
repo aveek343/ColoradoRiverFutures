@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1603210359324.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "E705297F",
+    "lastKnownWriteTime" : 8017342123466555394,
+    "last_content_update" : 1603210359324,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "9071FA6D",
+        "caption" : "dfTempElevationModel",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfTempElevationModel&cache_key=9071FA6D",
+        "displayedObservations" : 296,
+        "environment" : "",
+        "object" : "dfTempElevationModel",
+        "preview" : 0,
+        "totalObservations" : 296,
+        "variables" : 31
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

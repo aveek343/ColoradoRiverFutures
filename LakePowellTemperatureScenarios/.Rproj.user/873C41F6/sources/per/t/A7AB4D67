@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1602808263006.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A7AB4D67",
+    "lastKnownWriteTime" : 8017342125385807465,
+    "last_content_update" : 1602808263006,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "521AC1C",
+        "caption" : "dfPowellTempProfiles",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=dfPowellTempProfiles&cache_key=521AC1C",
+        "displayedObservations" : 121320,
+        "environment" : "",
+        "object" : "dfPowellTempProfiles",
+        "preview" : 0,
+        "totalObservations" : 121320,
+        "variables" : 11
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
