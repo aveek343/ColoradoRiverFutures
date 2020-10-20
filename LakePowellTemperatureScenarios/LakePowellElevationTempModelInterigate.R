@@ -339,7 +339,18 @@ dfTempElevationModelCalc$Month.x <- dfTempElevationModelCalc$Month
 #Remove highest elevation (top of dam)
 dfPowellZonesMinusTop <- dfPowellZonesShort %>% filter(level_feet <= 3700)
 
+
+# For the temperature profiles, reposition elevation so 0 foot measurement depth is at the penstock intakes
+# 10 foot measurement depth is 10 feet above penstock intakes, etc.
+# So assume the water surface is always depth feet above the penstock
+dfPowellTempLevelsPlot$ElevAvbPenstock <- dfPowellZonesMinusTop[5,2] + dMetersToFeet*dfPowellTempLevelsPlot$Depth
+#Add a Month.x field to allow faceting
+dfPowellTempLevelsPlot$Month.x <- dfPowellTempLevelsPlot$MonNum
+
 #Water Surface Elevation vs Release Temperature by Month
+#with Monthly regression model overlaid
+
+#NEED to add legend for regression fits and points above surface
 
 ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange(DateClean)) +
   #geom_line(aes(x=Day,y=avgDay), color="black") +
@@ -349,7 +360,7 @@ ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange
   
   scale_color_continuous(low=palBlues[2],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
   
-  labs(y="Water Surface Elevation (feet)", x="Release Temperature (oC)", color="Year") +
+  labs(y="Water Surface Elevation (feet)", x="Turbine Release Temperature (oC)", color="Year") +
   #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Release Temperature (oC)", color="") +
   
   facet_wrap(~Month.x) +
@@ -360,4 +371,35 @@ ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange
         legend.key = element_blank())
 
 ggsave("CompareReleaseElevationMonth.png", width=9, height = 6.5, units="in")
+
+
+#Water Surface Elevation vs Release Temperature by Month
+# with Monthly regression model overlaid and release temperature inferred from depth profiles
+# if water surface is at specified elevation and release is from penstocks
+
+ggplot(data=dfPowellReleaseElev %>% filter(Day %in% seq(1,31, by=1)) %>% arrange(DateClean)) +
+  #geom_line(aes(x=Day,y=avgDay), color="black") +
+  #Points represent transformed temperature profile reading. For a specific depth below the water surface,
+  #we calculate the elevation that would put the depth at the turbine elevation
+  geom_point(data = dfPowellTempLevelsPlot %>% filter(Depth*dMetersToFeet <= 3600 - dfPowellZonesShort[6,2]), aes(y = ElevAvbPenstock, x = T, shape ="Profile data-\nest. release\ntemp."), color = "Red", size=0.75) +
+    #Error bar on release data - color by water surface
+  geom_errorbar(aes(y=WaterSurface, xmin= minDay, xmax=maxDay, color = Year.x), size=1) +
+  geom_line(data = dfTempElevationModelCalc %>% filter(Elevation > dfPowellZonesShort[6,2] - 10), aes(x=Temperature, y=Elevation, linetype="Spreadsheet model"), color = "Black", size=1.25) +
+  
+  scale_color_continuous(low=palBlues[2],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
+  scale_linetype_manual(values = c("solid")) +
+  scale_shape_manual(values = c("circle")) +
+  
+  labs(y="Water Surface Elevation (feet)", x="Turbine Release Temperature (oC)", color="Year of obs.", linetype="", shape="") +
+  #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Turbine Release Temperature (oC)", color="") +
+  
+  facet_wrap(~Month.x) +
+  scale_y_continuous(limits = c(3370,3700), breaks = seq(3250,3711, by=50),labels=seq(3250,3711, by=50),  sec.axis = sec_axis(~. +0, name = "Active Storage\n(million acre-feet)", breaks = dfPowellZonesMinusTop$level_feet, labels = dfPowellZonesMinusTop$rightlabel )) +
+  xlim(7,30) +
+  
+  theme(text = element_text(size=18), legend.text=element_text(size=16)) #,
+        #legend.key = element_blank())
+
+ggsave("CompareReleaseElevationMonth.png", width=9, height = 6.5, units="in")
+
 
