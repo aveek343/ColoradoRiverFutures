@@ -1,0 +1,786 @@
+# Data from https://github.com/nytimes/covid-19-data
+# County Population data from https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/totals/
+
+# This assumes data frames have been read using "UpdateCovidData.R"
+
+# Provided by David Tarboton on 6/8/2020
+# Modified by David Rosenberg 6/16/2020
+
+#install.packages("tidyverse")
+library(tidyverse)   # Provides %>% pipe operator among other things
+library (stringr) #To compare strings
+library (lubridate) #To get day of month
+library (gridExtra) #To add table to ggPlot
+library(openintro) # state2abbr
+library(lattice)
+library(directlabels)
+library(ggrepel)  #Labels on right
+library(RColorBrewer)
+
+
+
+#DER function to plot in ggPlot
+CumDayDeath.r=function(dfData,title,pop,SecAxisType=NULL, TargetPop=0.5){
+  #dfData = data frame with date, cases, deaths columns in cumulative counts
+  #title = plot title
+  #pop = total population for region
+  #SecAxisType = "Per10000" | "Percent" : how to scale secondary axis
+  #TargetPop = fraction of total population. Used in calculating print statistics,
+  #    of Years to reach Target Population
+  
+  #Calcualte cases per day
+  dfData$daycases <- c(NA,diff(dfData$cases)) 
+  #Determine the First days of months to put on x-axis ticks
+  dfData$Day <- day(dfData$date)
+  dfDateLabels <- dfData %>% filter(Day==1)
+  dfDateLabels$Text <-format(as.Date(dfDateLabels$date),format="%B %d")
+  
+  #Calculate growth metrics
+  #calculate days to double
+  halfcases = dfData$cases[nrow(dfData)]/2
+  dfData$HalfCase <- ifelse(dfData$cases >= halfcases,1,0)
+  doubletime = round(sum(dfData$HalfCase)+0.5)
+  growthrate = round(halfcases/doubletime)
+  yearsTo = round((pop*TargetPop - halfcases)/growthrate/365,digits=1)
+  txtDouble = paste("Double time:",doubletime,"days")
+  txtRate  = paste("Infection rate:",round(halfcases/doubletime*30.5),"persons/month")
+  txtTimeTo = paste("Time to",TargetPop*100,"% infection:",yearsTo,"years")
+  
+  #Create a dataframe for the text labels
+  dfLabels <- data.frame(date=rep(dfDateLabels$date[1],3), NumPers = c(halfcases, 0.75*halfcases, 0.5*halfcases), txt = c(txtDouble, txtRate,txtTimeTo))
+  
+  
+  pPlot <- ggplot(dfData,aes(x=date, group=1)) +
+    #Cumulative
+    geom_line(aes(y=cases,color="Cumulative Infections"),size=2) +
+    #Single Day
+    geom_bar(aes(y=daycases,color="1 Day Infections", fill="red"),stat="identity") +
+    #Deaths
+    geom_line(aes(y=deaths,color="Cumulative Deaths"),size=1.5) +
+    #Add rate labels
+    geom_label(data=dfLabels, aes(x=date,y=NumPers, label= txt, hjust="left"), size=6)
+    
+    if ((!is.null(SecAxisType)) && str_detect(str_to_lower(SecAxisType),str_to_lower("Per10000")))
+      {
+      # 2nd y axis per 10000
+      pPlot <- pPlot + scale_y_continuous(
+          sec.axis=sec_axis(~ . * 10000/pop, name="Per 10000 population"))
+      } else {
+      # 2nd y axis fraction of total population
+      pPlot <- pPlot + scale_y_continuous(
+          sec.axis=sec_axis(~ . * 1/pop*100, name="Percent of Population"))
+      }
+    
+    pPlot <- pPlot + scale_x_discrete(breaks = dfDateLabels$date, labels=dfDateLabels$Text) + 
+    ggtitle(title)+
+    theme(plot.title = element_text(hjust = 0.5),legend.position = c(0.2,0.85),legend.title = element_blank(), text = element_text(size = 20))+
+    xlab("")+ylab("Number of People")+
+    scale_color_manual(breaks = c("Cumulative Infections","1 Day Infections", "Cumulative Deaths"), values=c("black", "red","blue")) +
+    guides(fill = FALSE)
+    
+    print(pPlot)
+
+}
+
+## DER function to plot percent infected for all counties in a state plus state percent infected. Screen
+## for counties with a max percent infected above a specified value.
+
+### Code to plot timeseries of % contraction by each county in specified state sState for each
+### County with maximumum contraction rate above minPercentToPlot
+
+PlotPercentCounty <- function(dfCovid, sState="Utah",minPercentToPlot = NA, TopXtoPlot = NA) {
+  #dfCovid = data frame with Covid cases by county downloaded from NYTimes
+  #sState = state of counties to plot
+  #minPercentToPlot = maximum cutoff percent infected must exceed this value to plot county. Otherwise listed in table
+  #TopXtoPlot = top X counties to plot. Other counties listed in table. X is an integer.
+  
+  # dfCovid <- covid.df
+  #  sState="New Jersey"
+  # minPercentToPlot <- 0.3
+  # TopXtoPlot = 21
+  
+  maxCountiesInLowTable = 18 #Maximum number of counties with low rates to list in the first table
+  
+  # Filter number of infections for all counties in the state
+  CurrCounty.df <- dfCovid %>% filter(state == sState)
+  #Filter county population for all conties in the state
+  CountyPop <- population %>% select(STNAME, CTYNAME, POPESTIMATE2019) %>%filter(STNAME %in% sState)
+  
+  
+  # Plot percent of population versus time.
+  # Add "County" to name so can join on population
+  CurrCounty.df$countyCty <- paste(CurrCounty.df$county,"County")
+  CurrCounty.df <- left_join(CurrCounty.df, CountyPop,by=c("countyCty" = "CTYNAME", "state" = "STNAME"))
+  
+  CurrCounty.df$CasePercent <- CurrCounty.df$cases/CurrCounty.df$POPESTIMATE2019*100
+  
+  #Find Counties with more than specifeid max contraction
+  if(is.na(TopXtoPlot)) {
+    #Break high and low by cutoff percent
+    cCounties <- CurrCounty.df %>% group_by(countyCty) %>% summarize(maxPercent = round(max(CasePercent),2)) %>% filter(maxPercent >= minPercentToPlot)
+    #Find counties with less than specified max contractions
+    cCountiesBelow <- CurrCounty.df %>% group_by(county) %>% summarize(maxPercent = round(max(CasePercent),2)) %>% filter(maxPercent < minPercentToPlot)
+    #Sort descending by maxPercent
+    cCountiesBelow <- cCountiesBelow[order(-cCountiesBelow$maxPercent),]   
+    
+  } else {
+    #Break high and low by rank  
+    cCounties <- CurrCounty.df %>% group_by(countyCty) %>% summarize(maxPercent = round(max(CasePercent),2)) 
+    cCountiesForLow <- CurrCounty.df %>% group_by(county) %>% summarize(maxPercent = round(max(CasePercent),2)) 
+    
+    #Sort the counties from largest to smallest percent
+    cCounties <- cCounties[order(-cCounties$maxPercent),]
+    cCountiesForLow <- cCountiesForLow[order(-cCountiesForLow$maxPercent),]
+    
+    if(TopXtoPlot > nrow(cCounties)) {
+      #Provided rank exceeds number of counties. Set to number of counties
+      TopXToPlot <- nrow(cCounties)
+    }
+  
+    #Break cCounties data frame around the TopXtoPlot-th row
+    cCountiesBelow <- cCountiesForLow[(TopXtoPlot+1):nrow(cCountiesForLow),]
+    cCounties <- cCounties[1:TopXtoPlot,]
+  }
+  
+  #Remove NA values
+  cCountiesBelow <- na.omit(cCountiesBelow)
+ 
+  #Filter on counties with more than max contraction
+  CurrCounty.df <- CurrCounty.df %>% filter(countyCty %in% cCounties$countyCty)
+  
+  #print(paste(nrow(cCountiesBelow),"Counties below cutoff of", minPercentToPlot))
+  #print(as.data.frame(cCountiesBelow))
+  # Prepare the State total data
+  #Get state population
+  statepop=population$POPESTIMATE2019[which(population$STNAME==sState & population$COUNTY == 0)]
+  #Get state COVID data
+  state.df=covidstate.df[which(covidstate.df$state==sState),]
+  state.df$CasePercent <- state.df$cases/statepop*100
+  #Add columns to match with CurrCounty.df
+  state.df$POPESTIMATE2019 <- statepop
+  
+  #Dummy value for County
+  title <- paste(sState,"-Top ",nrow(cCounties)," Counties",sep="")
+  state.df$county <- paste(sState,"All",sep="-")
+  state.df$countyCty <- paste(sState,"All",sep="-")
+  
+  dfData <- rbind(CurrCounty.df,state.df)
+  
+  #Recalculate with state value added
+  #Create the color scale. All blue except state which is red
+  cCounties <- rbind(cCounties,data.frame(countyCty = paste(sState,"All",sep="-"),
+                                          maxPercent= max(state.df$CasePercent) ))
+  cCounties$Color <- "blue"
+  cCounties$Color[nrow(cCounties)] <- "red"
+  #Set the size
+  cCounties$Size <- 1
+  cCounties$Size[nrow(cCounties)] <- 2
+  
+  #Grab the max infection rate and min Date to use to position the tables
+  maxPercent <- max(cCounties$maxPercent)
+  minDate <- min(as.Date(dfData$date))
+  
+  library(lattice)
+  library(directlabels)
+  
+  pPlot <- ggplot(dfData,aes(x=date, group=1)) +
+    #Cumulative
+    geom_line(aes(y=CasePercent, x=as.Date(date), group=county, color=county, size=county)) +
+    #geom_line(data=state.df, aes(y=CasePercent, x=as.Date(date), group=county, color=county),size=2) +
+    
+    #scale_x_discrete(limits = factor(NA, max(as.Date(CurrCounty.df$date))+10), breaks = dfDateLabels$date, labels=dfDateLabels$Text) + 
+    #scale_x_continuous(limits = c(NA, max(as.Date(CurrCounty.df$date))+10)) + #, breaks = dfDateLabels$date, labels=dfDateLabels$Text) + 
+    #  scale_x_date(limits = c(NA, max(as.Date(CurrCounty.df$date))+10), breaks = as.Date(dfDateLabels$date), date_labels=dfDateLabels$Text) + 
+    scale_x_date(limits = c(min(as.Date(CurrCounty.df$date)), as.Date(Sys.Date()+4))) + 
+    scale_color_manual(values = cCounties$Color) +
+    scale_size_manual(values = cCounties$Size)  
+  
+    if((nrow(cCounties) == TopXtoPlot) | (nrow(cCountiesBelow) > 0))  {
+      #If we have counties below the rank or cutoff percent, show them in a table(s)  
+      if(nrow(cCountiesBelow) <= maxCountiesInLowTable) {
+        #print("One table")
+        #Few low states than max in table. One Table
+        pPlot <- pPlot +  annotation_custom(tableGrob(cCountiesBelow, rows=NULL), xmin=minDate+8, xmax=minDate+5+14, ymin=-Inf, ymax=Inf)
+  
+      } else {
+        #print("Two tables")
+        #More low states than max number. Need two tables
+        pPlot <- pPlot + annotation_custom(tableGrob(cCountiesBelow[1:maxCountiesInLowTable,], rows=NULL), xmin=minDate+8, xmax=minDate+8+14, ymin=-Inf, ymax=Inf) +
+          annotation_custom(tableGrob(cCountiesBelow[(maxCountiesInLowTable+1):nrow(cCountiesBelow),], rows=NULL), xmin=minDate+8+21+1, xmax=minDate+8+21+1+21, ymin=-Inf, ymax=Inf)
+      }      
+    }
+  
+    pPlot <- pPlot + ggtitle(title) +
+    
+    
+    #geom_table(x=as.Date("3/1/2020"), y=2.5, label=tibble(cCountiesBelow)) +
+    
+    
+    theme(plot.title = element_text(hjust = 0.5),legend.position = "none",legend.title = element_blank(), text = element_text(size = 20))+
+    xlab("")+ylab("Percent of Population Infected")+
+    guides(fill = FALSE)
+  
+#  tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
+#  tbl <- tableGrob(cCountiesBelow, rows=NULL, theme=tt) 
+  
+  direct.label(pPlot,method="last.qp")
+  
+#  grid.arrange(pPlot, tbl,
+#               nrow=1, ncol=2,
+#               as.table=TRUE,
+#               heights=c(3,1))
+  
+  #print(pPlot)
+  
+  #Update xlim to 10 days after max date
+  
+}
+
+
+#PlotPercentCounty(covid.df,sState="Utah",TopXtoPlot = 27)
+PlotPercentCounty(covid.df,sState="Utah",TopXtoPlot = 20)
+ggsave("CovidUtah.png", width = 9.5, height = 6.5)
+PlotPercentCounty(covid.df,sState="Kansas",TopXtoPlot = 20)
+ggsave("CovidKansas.png", width = 9.5, height = 6.5)
+PlotPercentCounty(covid.df,sState="New Jersey",TopXtoPlot = 21)
+ggsave("CovidNewJersey.png", width = 9.5, height = 6.5)
+PlotPercentCounty(covid.df,sState="New York",TopXtoPlot = 21)
+ggsave("CovidNewYork.png", width = 9.5, height = 6.5)
+PlotPercentCounty(covid.df,sState="California",TopXtoPlot = 30)
+ggsave("CovidCalifornia.png", width = 9.5, height = 6.5)
+PlotPercentCounty(covid.df,sState="Montana",TopXtoPlot = 25)
+ggsave("CovidMontana.png", width = 9.5, height = 6.5)
+
+
+## Plot percent infection rate for each county in a specified state as a time series. Overplot State infection rate in Red
+# Group counties by colors according to the ranks described in cBreaks. These groups also affect the
+# labeling of the state's trace at the plot far right.
+PlotPercentCounties <- function(dfCovid, sState = "Utah", title = "", cBreaks = c(37, 11,0), xTextOffset = c(2,12), xLineStart = c(0.5,5), TopXtoPlot = 50) {
+  # dfCovid = data frame of cases by date, state, and county
+  # title = plot title. Code will append Data from http://nytimes
+  # cBreaks = Breakpoints for groups of counties by rank. Each breakpoint is the counties's max infection rate expressed as a rank
+      #High ranks => high infection rates. States above the first
+      #breakpoint (rank) all have the same color (dark blue). State labels plot at the same
+      #x-position. Color intensity decreases with the next group.
+      #Labels for the second group are plotted to the right of the first group.
+      #Labels for the third group are plotted at the same position as the first group.
+      #List ranks in descending order (e.g., 45, 13)
+      #Use the rank values for each group to control how many states are plotted in the group
+  # xTextOffset = offset from max X value in days to display trace labels for group #1 and group #2 (inset)
+  # TopXtoPlot = maximum number of entities to plot on the graph. These are the top-ranked (highest infection rate) counties
+
+  sState <- "Utah"
+  dfCovid <- covid.df
+  cBreaks <- c(28, 24, 21)
+  xTextOffset <- c(2,15)
+  xLineStart <- c(0.5,5)
+  title <- ""
+  TopXtoPlot <- 20
+  
+  # Filter number of infections for all counties in the state
+  CurrCounty.df <- dfCovid %>% filter(state == sState)
+  #Filter county population for all conties in the state
+  CountyPop <- population %>% select(STNAME, CTYNAME, POPESTIMATE2019) %>%filter(STNAME %in% sState)
+  
+  # Plot percent of population versus time.
+  # Add "County" to name so can join on population
+  CurrCounty.df$countyCty <- paste(CurrCounty.df$county,"County")
+  CurrCounty.df <- left_join(CurrCounty.df, CountyPop,by=c("countyCty" = "CTYNAME", "state" = "STNAME"))
+  
+  CurrCounty.df$CasePercent <- CurrCounty.df$cases/CurrCounty.df$POPESTIMATE2019*100
+  
+  #Generate a list of unique county names
+  cCounties <- unique(CurrCounty.df$county)
+  
+  #Find States with more than specifeid max contraction
+  cCounties <- CurrCounty.df %>% group_by(county) %>% summarize(maxPercent = round(max(CasePercent),2)) 
+  #Remove NAs
+  cCounties <- cCounties[!is.na(cCounties$maxPercent),]
+ 
+  #Remove from the data frame
+  dfCounty <- CurrCounty.df %>% filter(county %in% cCounties$county)
+
+  # Prepare the State total data
+  #Get state population
+  statepop=population$POPESTIMATE2019[which(population$STNAME==sState & population$COUNTY == 0)]
+  #Get state COVID data
+  state.df=covidstate.df[which(covidstate.df$state==sState),]
+  state.df$CasePercent <- state.df$cases/statepop*100
+  #Add columns to match with CurrCounty.df
+  state.df$POPESTIMATE2019 <- statepop
+  
+  sStateRate <- paste(state2abbr(sState)," Rate")
+  state.df$county <- sStateRate
+ 
+  #Turn state variable to character
+  dfCounty$county <- as.character(dfCounty$county)
+  state.df <- as.data.frame(state.df)
+  
+  #Construct the title
+  if (title == "") {
+    title <- "Data from https://github.com/nytimes/covid-19-data" 
+  } else {
+    title <- paste(title,"\nData from https://github.com/nytimes/covid-19-data")
+  }
+  
+  dfData <- rbind(state.df,dfCounty %>% select(date, county, state, fips, cases, deaths, POPESTIMATE2019, CasePercent))
+  
+  #Recalculate with state value added
+  #Create the color scale. All blue except state which is red
+  cCounties <- rbind(cCounties,data.frame(county = sStateRate, 
+                                      maxPercent= max(state.df$CasePercent) ))
+  
+  maxRank <- nrow(cCounties) + 1
+  
+ 
+  palBlue <- RColorBrewer::brewer.pal(9, "Blues")
+  fBlue <- colorRampPalette(c(palBlue[4],palBlue[9]))
+  #Create the colors for the break groups
+  palBlue <- rev(fBlue(length(cStateBreaks) + 1))
+  
+  cCounties$Color <- "blue"
+  cCounties$Color[maxRank-1] <- "red"
+  #Set the size
+  cCounties$Size <- 1
+  cCounties$Size[maxRank-1] <- 2
+  
+  #Grab the max infection rate and min Date to use to position the tables
+  nMaxPercent <- max(cCounties$maxPercent)
+  minDate <- min(as.Date(dfData$date))
+  maxDate <- max(as.Date(dfData$date))
+  
+  cCounties <- as.data.frame(cCounties[order(cCounties$Size, -cCounties$maxPercent),])
+  
+  # Assign the row numbers
+  cCounties$Rank <- rank(cCounties$maxPercent)   #   1:nrow(cStates)
+  cCounties$Group <- 1
+  
+  #Add a row to the cStateBreaks with the largest possible rank if the first rank is less than the max rank
+  if (cBreaks[1] < maxRank) {
+    cBreaks <- c(maxRank,cBreaks)
+  }
+  
+  numGroups <- length(cBreaks)
+  
+  #Assign the group 
+  for (iRow in 1:nrow(cCounties)) {
+    if (cCounties$Size[iRow] != 2) { #Only states
+      jGroup <- 2
+      while (jGroup <= numGroups) {
+        print(paste(iRow,cCounties$county[iRow],cCounties$Rank[iRow],"jGroup:",jGroup))
+        if ((cCounties$Rank[iRow] < cBreaks[jGroup - 1]) && (cCounties$Rank[iRow] >= cBreaks[jGroup])) {
+          cCounties$Group[iRow] <- jGroup
+          #Assign the color
+          cCounties$Color[iRow] <- palBlue[jGroup-1]
+          #Advance the counter so we exit the loop
+          jGroup <- numGroups + 1
+        } else { jGroup <- jGroup + 1}
+      }
+    }
+  }
+  
+  #Set the group for US Rate
+  cCounties$Group[cCounties$county == sStateRate] <- 3   #plyr::mapvalues(cCounties$Rank, from = cCounties$RankTry, to = cCounties$maxPercent)
+  
+  #cCounties$Color <- ifelse(cCounties$Color == "red", "red", ifelse(cCounties$Rank >= cStateBreaks[1],palBlue[9],ifelse(cCounties$Rank >= cStateBreaks[2], palBlue[7],palBlue[5]) ))
+  
+  #Count the number of entries of equal rank
+  cRanksMult <- cCounties %>% group_by(Rank) %>% summarize(NumAtRank = n())
+  #Join back to cCounties
+  cCounties <- left_join(cCounties,cRanksMult, by = c("Rank" = "Rank"))
+  #Create a new column
+  cCounties$RankTry <- cCounties$Rank
+  
+  #Go through the rows and reassign ranks
+  nRow <- 1
+  while (nRow < nrow(cCounties) - 1 ){
+    if(cCounties$NumAtRank[nRow] > 1) {
+      #print(paste(nRow,cCounties$state_abbr,cCounties$Rank, cCounties$NumAtRank))
+      #Change this group
+      rStart <- cCounties$Rank[nRow] - cCounties$NumAtRank[nRow]/2 - 0.5
+      for (j in seq(1,cCounties$NumAtRank[nRow])) {
+        #for (j in (cCounties$Rank[nRow] - cCounties$NumAtRank[nRow]/2 - 0.5):(cCounties$Rank[nRow] + cCounties$NumAtRank[nRow]/2 + 0.5) ) {
+        cCounties$RankTry[nRow] <- rStart + j 
+        nRow <- nRow + 1
+      }
+    } else { nRow <- nRow + 1}
+  }
+  
+  
+  # Find the max percent that corresponds to the rank
+  cBreaksFirst <- cBreaks
+  cBreaksFirst[1] <- maxRank - 1
+  cMaxPercent <- plyr::mapvalues(cBreaksFirst, from = cCounties$RankTry, to = cCounties$maxPercent)
+  
+  
+  #Order so US Total appears in sort
+  cCounties$county <- as.character(cCounties$county)
+  cCounties <- cCounties[order(cCounties$county),]
+  
+  #Calculate the Yposition of the label
+  #Odd # groups float up and down
+  cPercentFloat <- 0.5*c(0,0,-diff(cMaxPercent))
+  cFloatUp <- cPercentFloat
+  cFloatUp[seq(2,numGroups+1,by=2)] = 0
+  if (numGroups == 3) {
+    cFloatDown <- rep(0,4)
+    } else {cFloatDown <- c(0,0,-cFloatUp[seq(5,numGroups+2,by=2)],0,0)
+    }
+ 
+  #Create the data frame
+  dfFloat <- data.frame(Group = 1:(numGroups+1),FloatUp = cFloatUp, FloatDown = cFloatDown)
+  #Join to the cCounties by Group
+  cCounties <- left_join(cCounties,dfFloat,by = c("Group" = "Group"))
+  #First and last groups get bumped up and down
+  cCounties$yOffset <- ifelse(cCounties$Group == 2, 0.05, ifelse(cCounties$Group == numGroups, -0.05, ifelse(cCounties$Group %in% seq(3,numGroups,by=2),cCounties$FloatUp ,0)))
+  
+  yBotOffset <- 0.05
+  for (i in (1:(maxRank-1))) {
+    print(i)
+    cCounties$YPos[i] <- cMaxPercent[cCounties$Group[i]] + cCounties$FloatDown[i] + (cMaxPercent[cCounties$Group[i]-1] + cCounties$yOffset[i] - (cMaxPercent[cCounties$Group[i]] + cCounties$FloatDown[i]))/(cBreaks[cCounties$Group[i]-1]-cBreaks[cCounties$Group[i]])*(cCounties$RankTry[i] - cBreaks[cCounties$Group[i]])
+  }
+  # Assign the xLineStart, xLabelStart, and yOffset for the group. Even number groups plot
+  #closer to the left y-axis, odd groups further away.
+  cCounties$xLineStart <- ifelse(cCounties$Group %in% seq(2,100,by=2), xLineStart[1], xLineStart[2])
+  cCounties$xTextStart <- ifelse(cCounties$Group %in% seq(2,100,by=2), xTextOffset[1], xTextOffset[2])
+  
+  #Filter by ranks to show
+  cCountiesShow <- cCounties %>% filter(RankTry >= nrow(cCounties) - TopXtoPlot + 1)
+  
+  
+  #Join the Color group to the larger data
+  dfData <- left_join(dfData,cCounties[,c(1,3,4,6)], by=c("county" = "county"))
+  
+  #Assign dark, medium, light blues based on percentiles
+  
+  pPlot <- ggplot(dfData) +
+    #Cumulative
+    geom_line(aes(y=CasePercent, x=as.Date(date), group=county, color=as.factor(Color), size=as.factor(Size))) +
+    scale_x_date(limits = c(as.Date("2020-03-01"), as.Date(Sys.Date()+15))) + 
+    scale_color_manual(values = c(palBlue[1:(numGroups-1)],"red")) +
+    #scale_color_manual(values = c(cStates$Color), breaks=cStates$state ) +
+    scale_size_manual(values = c(1,2)) +
+    #ylim(NA,maxPercent*(1+0.15))
+    
+    ggtitle(title) +
+    
+    #Label the right end of each trace with a leader line segment and state abbr
+    geom_text(data=cCountiesShow, aes(x=maxDate+xTextStart, y = YPos, label = county, color = as.factor(Color), hjust = 0)) +
+    #segment from horizontal to label
+    geom_segment(data=cCountiesShow, aes(x = maxDate+xLineStart, xend = maxDate+xTextStart - 0.25, y = maxPercent , yend = YPos), size = 0.2, color = "grey75") +
+    #segment from trace end to slanter
+    geom_segment(data=cCountiesShow %>% filter(Group==3), aes(x = maxDate+0.5, xend = maxDate+xLineStart , y = maxPercent , yend = maxPercent), size = 0.2, color = "grey75") +
+    
+    
+    theme(plot.title = element_text(hjust = 0.5),legend.position = "none",legend.title = element_blank(), text = element_text(size = 20))+
+    xlab("")+ylab("Percent of Population Infected")+
+    guides(fill = FALSE)
+  
+  # tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
+  # tbl <- tableGrob(cStateLow, rows=NULL, theme=tt) 
+  
+  print(pPlot)
+  
+} 
+
+
+
+
+
+
+
+## Plot percent infection rate for each state as a time series. Overplot US infection rate in Red
+# Group states by colors according to the ranks described in cStateBreaks. These groups also affect the
+# labeling of the state's trace at the plot far right.
+PlotPercentStates <- function(dfCovid, title = "", cStateBreaks = c(37, 11,0), xTextOffset = c(2,12)) {
+  # title = plot title. Code will append Data from http://nytimes
+  # cStateBreaks = Breakpoints for groups of states expressed as state rank. Each breakpoint is the state's max infection rate expressed as a rank
+                     #High ranks => high infection rates. States above the first
+                     #breakpoint (rank) all have the same color (dark blue). State labels plot at the same
+                     #x-position. Color intensity decreases with the next group.
+                     #Labels for the second group are plotted to the right of the first group.
+                     #Labels for the third group are plotted at the same position as the first group.
+                     #List ranks in descending order (e.g., 45, 13)
+                     #Use the rank values for each group to control how many states are plotted in the group
+  #xTextOffset = offset from max X value in days to display trace labels for group #1 and group #2 (inset)
+  
+  # Group number of infections by state
+  state.df <- dfCovid %>% group_by(date, state) %>% summarize(cases = sum(cases), deaths = sum(deaths))
+  #Generate a list of unique state names
+  cStates <- unique(state.df$state)
+  
+  #Filter county population for all conties in the state
+  #statepop.df <- population %>% select(STNAME, POPESTIMATE2019) %>% group_by(STNAME) %>% summarize(pop2019 = sum(POPESTIMATE2019))
+  statepop.df <- population %>% select(CTYNAME, POPESTIMATE2019) %>% filter(CTYNAME %in% cStates)
+  #Rename the columns
+  statepop.df <- statepop.df %>% rename(STNAME = CTYNAME, pop2019 = POPESTIMATE2019)
+  # Join the population to the cases
+  
+  state.df <- left_join(state.df, statepop.df, by=c("state" = "STNAME"))
+  
+  # add state abbreviation
+  
+  # Calculate percent infections of total population
+  state.df$CasePercent <- state.df$cases/state.df$pop2019*100
+  
+  #Find States with more than specifeid max contraction
+  cStates <- state.df %>% group_by(state) %>% summarize(maxPercent = round(max(CasePercent),2)) %>% filter(state %in% state.name)
+  #Remove NAs
+  cStates <- cStates[!is.na(cStates$maxPercent),]
+  #cStateHigh$state_abbr <- ifelse(cStateHigh$state %in% state.name, state2abbr(cStateHigh$state), cStateHigh$state)
+  cStates$state_abbr <- state2abbr(as.character(cStates$state))
+  
+  dfState <- state.df %>% filter(state %in% cStates$state)
+  
+  #Find states with less than specified max contractions
+  #cStateLow <- state.df %>% group_by(state) %>% summarize(maxPercent = round(max(CasePercent),2)) %>% filter(maxPercent < minPercentToPlot)
+  
+  #Filter on counties with more than max contraction
+  
+  #print(paste(nrow(cStateHigh),"States above cutoff of", minPercentToPlot,"%; ",nrow(cStateLow),"below cutoff"))
+  #print(as.data.frame(cStateLow))
+  
+  # Prepare the US total data
+  #Get state population
+  uspop <- population %>% filter(COUNTY==0) %>% select(POPESTIMATE2019) %>% sum
+  uscases.df <- dfState %>% group_by(date) %>% summarize(cases = sum(cases), deaths = sum(deaths))
+  
+  uscases.df$pop2019 <- uspop
+  uscases.df$CasePercent <- uscases.df$cases/uscases.df$pop2019*100
+  uscases.df$state <- "US Rate"
+  #Turn state variable to character
+  dfState$state <- as.character(dfState$state)
+  uscases.df <- as.data.frame(uscases.df)
+  dfState <- as.data.frame(dfState)
+  
+  #Dummy value for County
+  if (title == "") {
+    title <- "Data from https://github.com/nytimes/covid-19-data" 
+    } else {
+      title <- paste(title,"\nData from https://github.com/nytimes/covid-19-data")
+    }
+  
+  dfData <- rbind(uscases.df,dfState)
+  
+  #Recalculate with state value added
+  #Create the color scale. All blue except state which is red
+  cStates <- rbind(cStates,data.frame(state = "US Rate", state_abbr = "US Rate",
+                                          maxPercent= max(uscases.df$CasePercent) ))
+  
+
+  maxRank <- nrow(cStates) + 1
+  
+  library(RColorBrewer)
+  palBlue <- RColorBrewer::brewer.pal(9, "Blues")
+  fBlue <- colorRampPalette(c(palBlue[4],palBlue[9]))
+  #Create the colors for the break groups
+  palBlue <- rev(fBlue(length(cStateBreaks) + 1))
+  
+  cStates$Color <- "blue"
+  cStates$Color[maxRank-1] <- "red"
+  #Set the size
+  cStates$Size <- 1
+  cStates$Size[maxRank-1] <- 2
+  
+  #Grab the max infection rate and min Date to use to position the tables
+  nMaxPercent <- max(cStates$maxPercent)
+  minDate <- min(as.Date(dfData$date))
+  maxDate <- max(as.Date(dfData$date))
+  
+  cStates <- as.data.frame(cStates[order(cStates$Size, -cStates$maxPercent),])
+
+  # Assign the row numbers
+  cStates$Rank <- rank(cStates$maxPercent)   #   1:nrow(cStates)
+  cStates$Group <- 1
+
+  #Add a row to the cStateBreaks with the largest possible rank if the first rank is less than the max rank
+  if (cStateBreaks[1] < maxRank) {
+    cStateBreaks <- c(maxRank,cStateBreaks)
+  }
+  
+  numGroups <- length(cStateBreaks)
+    
+  #Assign the group 
+  for (iRow in 1:nrow(cStates)) {
+    if (cStates$Size[iRow] != 2) { #Only states
+      jGroup <- 2
+      while (jGroup <= numGroups) {
+        print(paste(iRow,cStates$state[iRow],cStates$Rank[iRow],"jGroup:",jGroup))
+        if ((cStates$Rank[iRow] < cStateBreaks[jGroup - 1]) && (cStates$Rank[iRow] >= cStateBreaks[jGroup])) {
+          cStates$Group[iRow] <- jGroup
+          #Assign the color
+          cStates$Color[iRow] <- palBlue[jGroup-1]
+          #Advance the counter so we exit the loop
+          jGroup <- numGroups + 1
+        } else { jGroup <- jGroup + 1}
+        }
+    }
+  }
+  
+  #Set the group for US Rate
+  cStates$Group[cStates$state == "US Rate"] <- 3   #plyr::mapvalues(cStates$Rank, from = cStates$RankTry, to = cStates$maxPercent)
+  
+  #cStates$Color <- ifelse(cStates$Color == "red", "red", ifelse(cStates$Rank >= cStateBreaks[1],palBlue[9],ifelse(cStates$Rank >= cStateBreaks[2], palBlue[7],palBlue[5]) ))
+
+  #Count the number of entries of equal rank
+  cRanksMult <- cStates %>% group_by(Rank) %>% summarize(NumAtRank = n())
+  #Join back to cStates
+  cStates <- left_join(cStates,cRanksMult, by = c("Rank" = "Rank"))
+  #Create a new column
+  cStates$RankTry <- cStates$Rank
+  
+  #Go through the rows and reassign ranks
+  nRow <- 1
+  while (nRow < nrow(cStates) - 1 ){
+    if(cStates$NumAtRank[nRow] > 1) {
+      #print(paste(nRow,cStates$state_abbr,cStates$Rank, cStates$NumAtRank))
+      #Change this group
+      rStart <- cStates$Rank[nRow] - cStates$NumAtRank[nRow]/2 - 0.5
+      for (j in seq(1,cStates$NumAtRank[nRow])) {
+      #for (j in (cStates$Rank[nRow] - cStates$NumAtRank[nRow]/2 - 0.5):(cStates$Rank[nRow] + cStates$NumAtRank[nRow]/2 + 0.5) ) {
+        cStates$RankTry[nRow] <- rStart + j 
+        nRow <- nRow + 1
+        }
+      } else { nRow <- nRow + 1}
+    }
+  
+
+  # Find the max percent that corresponds to the rank
+  cStateBreaksFirst <- cStateBreaks
+  cStateBreaksFirst[1] <- maxRank - 1
+  cStateMaxPercent <- plyr::mapvalues(cStateBreaksFirst, from = cStates$RankTry, to = cStates$maxPercent)
+  
+  
+  #Order so US Total appears in sort
+  cStates$state <- as.character(cStates$state)
+  cStates <- cStates[order(cStates$state),]
+  
+  #Calculate the Yposition of the label
+  #Odd # groups float up and down
+  cStatePercentFloat <- 0.5*c(0,0,-diff(cStateMaxPercent))
+  cFloatUp <- cStatePercentFloat
+  cFloatUp[seq(2,numGroups,by=2)] = 0
+  cFloatDown <- c(0,0,-cFloatUp[seq(5,numGroups+2,by=2)],0,0)
+  #Create the data frame
+  dfFloat <- data.frame(Group = 1:(numGroups+1),FloatUp = cFloatUp, FloatDown = cFloatDown)
+  #Join to the cStates by Group
+  cStates <- left_join(cStates,dfFloat,by = c("Group" = "Group"))
+  #First and last groups get bumped up and down
+  cStates$yOffset <- ifelse(cStates$Group == 2, 0.05, ifelse(cStates$Group == numGroups, -0.05, ifelse(cStates$Group %in% seq(3,numGroups,by=2),cStates$FloatUp ,0)))
+  
+  yBotOffset <- 0.05
+  for (i in (1:(maxRank-1))) {
+    print(i)
+    cStates$YPos[i] <- cStateMaxPercent[cStates$Group[i]] + cStates$FloatDown[i] + (cStateMaxPercent[cStates$Group[i]-1] + cStates$yOffset[i] - (cStateMaxPercent[cStates$Group[i]] + cStates$FloatDown[i]))/(cStateBreaks[cStates$Group[i]-1]-cStateBreaks[cStates$Group[i]])*(cStates$RankTry[i] - cStateBreaks[cStates$Group[i]])
+  }
+ # cStates <- cStates[order(-cStates$maxPercent),]
+  # Assign the xLineStart, xLabelStart, and yOffset for the group. Even number groups plot
+  #closer to the left y-axis, odd groups further away.
+  cStates$xLineStart <- ifelse(cStates$Group %in% seq(2,100,by=2), 0.5,5)
+  cStates$xTextStart <- ifelse(cStates$Group %in% seq(2,100,by=2), xTextOffset[1],xTextOffset[2])
+  
+  
+  #Join the Color group to the larger data
+  dfData <- left_join(dfData,cStates[,c(1,4,5,7)], by=c("state" = "state"))
+ 
+  #Assign dark, medium, light blues based on percentiles
+  
+  pPlot <- ggplot(dfData) +
+    #Cumulative
+    geom_line(aes(y=CasePercent, x=as.Date(date), group=state, color=as.factor(Color), size=as.factor(Size))) +
+    scale_x_date(limits = c(as.Date("2020-03-01"), as.Date(Sys.Date()+15))) + 
+    scale_color_manual(values = c(palBlue[1:(numGroups-1)],"red")) +
+    #scale_color_manual(values = c(cStates$Color), breaks=cStates$state ) +
+    scale_size_manual(values = c(1,2)) +
+    #ylim(NA,maxPercent*(1+0.15))
+    
+    ggtitle(title) +
+    
+    #Label the right end of each trace with a leader line segment and state abbr
+      geom_text(data=cStates, aes(x=maxDate+xTextStart, y = YPos, label = state_abbr, color = as.factor(Color), hjust = 0)) +
+      #segment from horizontal to label
+      geom_segment(data=cStates, aes(x = maxDate+xLineStart, xend = maxDate+xTextStart - 0.25, y = maxPercent , yend = YPos), size = 0.2, color = "grey75") +
+      #segment from trace end to slanter
+      geom_segment(data=cStates %>% filter(Group==3), aes(x = maxDate+0.5, xend = maxDate+xLineStart , y = maxPercent , yend = maxPercent), size = 0.2, color = "grey75") +
+    
+      
+    theme(plot.title = element_text(hjust = 0.5),legend.position = "none",legend.title = element_blank(), text = element_text(size = 20))+
+    xlab("")+ylab("Percent of Population Infected")+
+    guides(fill = FALSE)
+  
+   # tt <- ttheme_default(colhead=list(fg_params = list(parse=TRUE)))
+   # tbl <- tableGrob(cStateLow, rows=NULL, theme=tt) 
+    
+  print(pPlot)
+  
+  } 
+
+  #direct.label(pPlot,method="last.qp")
+
+PlotPercentStates(covid.df, cStateBreaks = c(38, 11,0))
+
+ggsave("CovidStates.png", width = 9.5, height = 6.5)
+
+
+
+
+
+dfCountiesToPlot <- data.frame(county = c("Cache", "Box Elder", "Weber", "Summit", "Washington", "Contra Costa","Tompkins"),
+                               state = c("Utah","Utah","Utah","Utah", "Utah", "California", "New York"),
+                               ExtraTitleText = c(" and https://brhd.org/coronavirus","","","","","","") )
+
+sPrimaryDataSource <- "Data from https://github.com/nytimes/covid-19-data"
+
+#Loop over counties
+for (i in 1:nrow(dfCountiesToPlot)) {
+  
+  cCounty <- as.character(dfCountiesToPlot$county[i])
+  cState <-  as.character(dfCountiesToPlot$state[i])
+  #Grab the covid data
+  CurrCounty.df=covid.df[which(covid.df$county==cCounty& covid.df$state==cState),]
+  
+  #Grab the population data
+  sCountyName <- paste(cCounty,"County")
+  CountyPop=population$POPESTIMATE2019[which(population$STNAME==cState & population$CTYNAME == sCountyName)]
+
+  #Compose the title
+  sTitle <- paste0(sCountyName,", ",cState,"\n",sPrimaryDataSource,as.character(dfCountiesToPlot$ExtraTitleText[i]))
+  # Plot Cummulative Contractions Per Day
+  CumDayDeath.r(CurrCounty.df,sTitle,CountyPop,"Percent")
+
+  }
+  
+#Plot the States
+for (lState in unique(dfCountiesToPlot$state)) {
+     
+  #Turn level to character
+  cState <- as.character(lState)
+  
+  print(cState)
+  #Get state population
+  statepop=population$POPESTIMATE2019[which(population$STNAME==cState & population$COUNTY == 0)]
+  #Get state COVID data
+  state.df=covidstate.df[which(covidstate.df$state==cState),]
+  #Compose the title
+  sTitle <- paste0(cState,"\n",sPrimaryDataSource,as.character(dfCountiesToPlot$ExtraTitleText[i]))
+  print(sTitle)
+  # Plot Cummulative Contractions Per Day
+  CumDayDeath.r(state.df,sTitle,statepop,"Percent")
+    
+}
+
+
+# Plot National
+# tidyverse way
+uspop=population %>% filter(COUNTY==0) %>% select(POPESTIMATE2019) %>% sum
+CumDayDeath.r(covidus.df,"United States",uspop)
+
+CurrCounty.df=covid.df %>% filter(county %in% dfCountiesToPlot$county, state %in% dfCountiesToPlot$state)
+dfCountiesToPlot$countyCty <- paste(dfCountiesToPlot$county,"County")
+CountyPop= population %>% select(STNAME, CTYNAME, POPESTIMATE2019) %>%filter(STNAME %in%  dfCountiesToPlot$state, CTYNAME %in% dfCountiesToPlot$countyCty) 
+
+# Count counties by State
+dfCountyCount <- covid.df %>% distinct(state,county) %>% group_by(state) %>% summarize(CountyCount = n())
+
+
+

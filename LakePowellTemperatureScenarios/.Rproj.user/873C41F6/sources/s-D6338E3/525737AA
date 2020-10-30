@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1604025910874.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "525737AA",
+    "lastKnownWriteTime" : 1602305963,
+    "last_content_update" : 1602305963,
+    "path" : "C:/Rosenberg/Personal/Activism/CoronaVirus/CovidPlotter/CovidPlotAsFunction.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "472,0",
+        "scrollLine" : "457"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

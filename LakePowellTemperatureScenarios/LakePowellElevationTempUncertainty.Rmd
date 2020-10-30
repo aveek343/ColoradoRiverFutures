@@ -1,5 +1,5 @@
 ---
-title: "Lake Powell Surface Elevation and Release Temperatures: Scenario-based data interpretation "
+title: "Scenarios of Lake Powell Release Temperatures and Corresponding Reservoir Surface Elevations"
 author: "David E. Rosenberg"
 date: "October 27, 2020"
 header-includes:
@@ -450,20 +450,22 @@ dfPowellTempLevelsPlot$ElevAvbPenstock <- dfPowellZonesMinusTop[5,2] + dMetersTo
 #Add a Month.x field to allow faceting
 dfPowellTempLevelsPlot$Month.x <- dfPowellTempLevelsPlot$MonNum
 
+cElevationsExt <- c(3300,3700)
+
 
 # Water Surface Elevation vs Release Temperature by Month
 # Plot all monthly regression models on one plot
 
-p <- ggplot(data=dfTempElevationModelCalc %>% filter(Elevation > dfPowellZonesShort[6,2] - 10)) +
+ggplot(data=dfTempElevationModelCalc %>% filter(Elevation > dfPowellZonesShort[6,2] - 10)) +
   #geom_line(aes(x=Day,y=avgDay), color="black") +
   #Points represent transformed temperature profile reading. For a specific depth below the water surface,
   #we calculate the elevation that would put the depth at the turbine elevation
   #geom_point(data = dfPowellTempLevelsPlot %>% filter(Depth*dMetersToFeet <= 3600 - dfPowellZonesShort[6,2]), aes(y = ElevAvbPenstock, x = T, shape ="Wahweap temperature\nat turbine elev."), color = "Red", size=0.75) +
   #Error bar on release data - color by water surface
   #geom_errorbar(aes(y=WaterSurface, xmin= minDay, xmax=maxDay, color = Year.x), size=1) +
-  geom_line(aes(x=Temperature, y=Elevation, color = Month.x, group = Month.x), size=1.25) +
+  geom_line(aes(x=Temperature, y=Elevation, group = Month.x), size=1.25) +
   
-  scale_color_continuous(low=palBlues[4],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
+  #scale_color_continuous(low=palBlues[4],high=palBlues[9], na.value="White", guide = "colorbar", aesthetics="color") +
   #scale_linetype_manual(values = c("solid")) +
   #scale_shape_manual(values = c("circle")) +
   
@@ -471,13 +473,19 @@ p <- ggplot(data=dfTempElevationModelCalc %>% filter(Elevation > dfPowellZonesSh
   #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Turbine Release Temperature (oC)", color="") +
   
   #facet_wrap(~Month.x) +
-  scale_y_continuous(limits = c(3370,3700), breaks = seq(3250,3711, by=50),labels=seq(3250,3711, by=50),  sec.axis = sec_axis(~. +0, name = "Active Storage\n(million acre-feet)", breaks = dfPowellZonesMinusTop$level_feet, labels = dfPowellZonesMinusTop$rightlabel )) +
+  scale_y_continuous(limits = cElevationsExt, breaks = seq(3250,3711, by=50),labels=seq(3250,3711, by=50),  sec.axis = sec_axis(~. +0, name = "Active Storage\n(million acre-feet)", breaks = dfPowellZonesMinusTop$level_feet, labels = dfPowellZonesMinusTop$rightlabel )) +
   xlim(7,30) +
   
-  theme(text = element_text(size=nFontSize-2), legend.text=element_text(size=nFontSize-4)) #,
-#legend.key = element_blank())
+  theme(text = element_text(size=nFontSize-2), legend.text=element_text(size=nFontSize-4)) + #,
 
-direct.label(p,"angled.endpoints")
+  #Label the bottom of each trace with the Month number
+  #Most months plot directly under
+  geom_text(data=dfTempElevationModelCalc %>% filter(Elevation == 3480, Month.x %in% c(2,3,4,5,6,10,7)), aes(x=Temperature, y = Elevation - 10, label = Month.x), color = "Black", size = 4) +
+  #These months below
+  geom_text(data=dfTempElevationModelCalc %>% filter(Elevation == 3480, Month.x %in% c(1,11, 12)) , aes(x=Temperature, y = Elevation - 25, label = Month.x), color = "Black", size = 4) +
+  #Months 8 and 9 at right
+  geom_text(data=dfTempElevationModelCalc %>% filter(Elevation == 3490, Month.x %in% c(8,9)), aes(x=30 - 0.75*(9-Month.x), y = Elevation + 10*(9 - Month.x), label = Month.x), color = "Black", size = 4)
+
 
 ```
 
@@ -619,11 +627,11 @@ FindElevationRangeForTemperature <- function(dfObserved, dfProfile, cTemps, Temp
   #cTemps are ascending
   
   #Test values
-  #cTemps <- 15
-  #dfObserved <- dfPowellReleaseElev
-  #dfProfile <- dfPowellTempLevelsPlot
-  #TempTolerance <- 0.5
-  #i <- 1
+  # cTemps <- 15
+  # dfObserved <- dfPowellReleaseElev
+  # dfProfile <- dfPowellTempLevelsPlot
+  # TempTolerance <- 0.5
+  # i <- 1
   
   #Find water surface elevation range for each temperature criteria
   for (i in (1:length(cTemps))) {
@@ -641,6 +649,15 @@ FindElevationRangeForTemperature <- function(dfObserved, dfProfile, cTemps, Temp
     #Find the range from the values
     dfRangeCurrTemp <- dfRangeComb %>% group_by(Month.x,Temperature) %>% summarize(minElevation = min(minElevation), maxElevation = max(maxElevation))
     
+    #Add values for missing months. At and above turbine elevation, temperature will be value
+    cMonthsMiss <- which(!(seq(1,12,by=1) %in% dfRangeCurrTemp$Month.x))
+    dfMissMonths <- data.frame(Month.x = cMonthsMiss, Temperature = Temperature, minElevation = 3490, maxElevation = 3490)
+
+    #Bind to range datafram
+    dfRangeCurrTemp <- rbind(as.data.frame(dfRangeCurrTemp), dfMissMonths)
+    
+    
+    
     #Store results for elevation
     if (i==1) { # new dataframe
       dfRange <- dfRangeCurrTemp
@@ -653,17 +670,23 @@ FindElevationRangeForTemperature <- function(dfObserved, dfProfile, cTemps, Temp
   #Calculate the temperature range
   dfRange$Range <- dfRange$maxElevation - dfRange$minElevation
   
+  #Order the data frame by months
+  dfRange <- dfRange[order(dfRange$Month.x, dfRange$Temperature),]
+  
   return(dfRange)
 }
 
+#Temperatures at which to show range of elevation
+cTempsBreak <- c(15,18)
 
 dfTest <- FindTempRangeForElevation(dfPowellReleaseElev,dfPowellTempLevelsPlot, seq(3490,3690,by=5))
-dfTestElev <- FindElevationRangeForTemperature(dfPowellReleaseElev,dfPowellTempLevelsPlot, c(15,18), 1.0)
+dfTestElev <- FindElevationRangeForTemperature(dfPowellReleaseElev,dfPowellTempLevelsPlot, cTempsBreak, 1.0)
 
+# Plot as stacked bar. Each bar shows the elevation ranges one can find the specified turbine release temperature
 # Try in stacked bar
 # Reformat the data for a stacked bar from bottom up. First entry is dummy to Turbine elevation
 
-cCategories <- c("<15", "<18",">18","Base")
+cCategories <- c("< 15", "< 18","> 18","Base")
 
 # Order the data frame so can get the minimum elevation at the next warmest temperature
 dfTestElev <- dfTestElev[order(dfTestElev$Month.x, dfTestElev$Temperature),]
@@ -672,9 +695,9 @@ dfTestElev$maxElevNextT <- dplyr::lag(dfTestElev$maxElevation)
 # Filter for elevation values for each temperature block
 
 dfTestElevBar <- (data.frame(Month.x = seq(1,12,by=1), TempCategory = "Base" , ElevationAdd = 3490)) # Base entry
-dfTestElevBar2 <- as.data.frame(dfTestElev %>% filter(Temperature == 18) %>% mutate(Month.x = Month.x, TempCategory = ">18", ElevationAdd = max(minElevation,3490) - 3490) %>% select(Month.x, TempCategory, ElevationAdd))
-dfTestElevBar3 <- as.data.frame(dfTestElev %>% filter(Temperature == 18) %>% mutate(Month.x = Month.x, TempCategory = "<18", ElevationAdd = maxElevNextT - minElevation) %>% select(Month.x, TempCategory, ElevationAdd))
-dfTestElevBar4 <- as.data.frame(dfTestElev %>% filter(Temperature == 15) %>% mutate(Month.x = Month.x, TempCategory = "<15", ElevationAdd = 3700 - maxElevation) %>% select(Month.x, TempCategory, ElevationAdd))
+dfTestElevBar2 <- as.data.frame(dfTestElev %>% filter(Temperature == cTempsBreak[2]) %>% mutate(Month.x = Month.x, TempCategory = cCategories[3], ElevationAdd = ifelse(minElevation > 3490, minElevation, 3490) - 3490) %>% select(Month.x, TempCategory, ElevationAdd))
+dfTestElevBar3 <- as.data.frame(dfTestElev %>% filter(Temperature == cTempsBreak[2]) %>% mutate(Month.x = Month.x, TempCategory = cCategories[2], ElevationAdd = maxElevNextT - minElevation) %>% select(Month.x, TempCategory, ElevationAdd))
+dfTestElevBar4 <- as.data.frame(dfTestElev %>% filter(Temperature == cTempsBreak[1]) %>% mutate(Month.x = Month.x, TempCategory = cCategories[1], ElevationAdd = 3700 - maxElevation) %>% select(Month.x, TempCategory, ElevationAdd))
 
 dfTestElevBar <- as.data.frame(rbind(dfTestElevBar, dfTestElevBar2, dfTestElevBar3, dfTestElevBar4))
 
@@ -683,7 +706,9 @@ dfTestElevBar$Alpha <- ifelse(dfTestElevBar$TempCategory == cCategories[4],0,1)
 
 
 #Order the bars
+#dfTestElevBar$Month.x <- factor(dfTestElevBar$Month.x, levels = seq(1,12,by=1))
 dfTestElevBar$TempCategory <- factor(dfTestElevBar$TempCategory, levels = cCategories )
+dfTestElevBar <- dfTestElevBar[order(dfTestElevBar$Month.x, dfTestElevBar$TempCategory),]
 
 ggplot(data=dfTestElevBar) +  #[order(dfTestElevBar$TempCategory, decreasing = T),]
   
@@ -694,19 +719,18 @@ ggplot(data=dfTestElevBar) +  #[order(dfTestElevBar$TempCategory, decreasing = T
   scale_fill_manual(values = c("blue", "pink","red","white"), breaks = cCategories[1:3], labels = cCategories[1:3]) +
   #scale_color_manual(values = c("blue","red")) +
   
-  labs(y="Water Surface Elevation (feet)", x="Month", fill="Turbine Release\nTemperature (oC)", alpha = "", linetype="", shape="") +
+  labs(y="Water Surface Elevation (feet)", x="Month", fill="Turbine Release\nTemperature Scenario\n(oC)", alpha = "", linetype="", shape="") +
   #labs(x="Temperature at Wahweap @ 3,490 ft (oC)", y="Turbine Release Temperature (oC)", color="") +
   coord_cartesian(ylim = c(3370,3700)) +
   scale_y_continuous(breaks = seq(3250,3711, by=50),labels=seq(3250,3711, by=50),  sec.axis = sec_axis(~. +0, name = "Active Storage\n(million acre-feet)", breaks = dfPowellZonesMinusTop$level_feet, labels = dfPowellZonesMinusTop$rightlabel )) +
-  scale_x_continuous(limits = c(1,12), breaks = seq(1,12,by=1)) +
+  scale_x_continuous(limits = c(0.5,12.5), breaks = seq(1,12,by=1)) +
   scale_alpha(guide = 'none') +
   
   #Vertical line at temperature breaks
   #geom_vline(xintercept=c(15,18)) +
-  
   theme(text = element_text(size=nFontSize), legend.text=element_text(size=nFontSize-2), legend.position="top")
 
 
 ```
 
-## Figure 5. Lake Powell water surface elevations to achieve turbine release temperature targets
+## Figure 5. Lake Powell water surface elevation ranges for turbine release temperature scenarios. Elevation ranges consider uncertainty in observed and water profile data.

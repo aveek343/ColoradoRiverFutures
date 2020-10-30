@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1603856575551.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4122971418",
+    "id" : "948B8EE2",
+    "lastKnownWriteTime" : 1604030624,
+    "last_content_update" : 1604030624731,
+    "path" : "C:/Rosenberg/Work/USU/Research/ColoradoRiver/RCode/ColoradoRiverFutures/LakePowellTemperatureScenarios/LakePowellElevationTempUncertainty.Rmd",
+    "project_path" : "LakePowellElevationTempUncertainty.Rmd",
+    "properties" : {
+        "cursorPosition" : "1,72",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
